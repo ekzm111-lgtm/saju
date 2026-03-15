@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Fortune AI | 관리자 대시보드</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { padding-top: 0; }
+        .admin-layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+        .admin-sidebar { background: #05070a; border-right: 1px solid var(--border-light); padding: 40px 20px; position: sticky; top: 0; height: 100vh; }
+        .admin-main { padding: 60px; background: #0A0D14; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
+        .admin-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); padding: 30px; border-radius: 4px; margin-bottom: 30px; }
+        .request-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        .request-table th { text-align: left; padding: 15px; border-bottom: 2px solid var(--gold-line); color: var(--gold); }
+        .request-table td { padding: 15px; border-bottom: 1px solid var(--border-light); font-size: 0.9rem; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+        .status-pending { background: var(--gold-soft); color: var(--gold); }
+        .status-done { background: rgba(67, 160, 71, 0.2); color: #43A047; }
+        .btn-view { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 5px 12px; cursor: pointer; transition: 0.3s; margin-right: 5px; }
+        .btn-view:hover { background: var(--gold); color: #000; }
+        .btn-delete { border: 1px solid #ef4444; color: #ef4444; }
+        .btn-delete:hover { background: #ef4444; color: #fff; }
+        .admin-tab-content { display: none; }
+        .admin-tab-content.active { display: block; }
+        .sidebar-link { cursor: pointer; transition: 0.3s; padding: 12px 15px; display: flex; align-items: center; gap: 10px; border-radius: 4px; border: none; background: transparent; width: 100%; text-align: left; color: var(--text-muted); font-family: inherit; font-size: 1rem; }
+        .sidebar-link i { width: 20px; text-align: center; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+        .sidebar-link.active { background: var(--gold-soft); color: var(--gold); font-weight: 700; }
+        
+        .admin-form-group { margin-bottom: 20px; text-align: left; }
+        .admin-form-group label { display: block; margin-bottom: 10px; color: var(--gold); font-weight: 700; font-size: 0.9rem; }
+        .admin-form-group input, .admin-form-group textarea, .admin-form-group select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--gold-line); color: #fff; padding: 12px; border-radius: 4px; }
+        .admin-form-group input:focus { border-color: var(--gold); outline: none; }
+    </style>
+    <script>
+        // 1. 보안 설정: 임시 로그인 체크
+        function checkAuth() {
+            const id = prompt("관리자 아이디를 입력하세요.");
+            const pw = prompt("관리자 비밀번호를 입력하세요.");
+            
+            if (id === "1111" && pw === "1111") {
+                document.body.style.display = "block";
+                initAdmin();
+            } else {
+                alert("인증에 실패했습니다.");
+                location.href = "index.html";
+            }
+        }
+
+        // 2. 관리자 초기화 및 Supabase 연동
+        const SUPABASE_URL = "https://kmrigsfjsdsfzpugtfnq.supabase.co";
+        const SUPABASE_KEY = "여기에_publishable_key"; // 실제 키로 교체 필요
+        let supabaseClient;
+
+        async function initAdmin() {
+            const { createClient } = supabase;
+            supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            loadRequests();
+            loadServices();
+            
+            // 실시간 구독 설정
+            supabaseClient
+                .channel('public:fortune_results')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'fortune_results' }, payload => {
+                    loadRequests();
+                })
+                .subscribe();
+
+            supabaseClient
+                .channel('public:fortune_services')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'fortune_services' }, payload => {
+                    loadServices();
+                })
+                .subscribe();
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.admin-tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        async function loadRequests() {
+            const { data, error } = await supabaseClient
+                .from('fortune_results')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (data) {
+                const list = document.getElementById('request-list');
+                list.innerHTML = data.map(req => `
+                    <tr>
+                        <td>${new Date(req.created_at).toLocaleString()}</td>
+                        <td>${req.user_name}</td>
+                        <td>${req.user_phone || '-'}</td>
+                        <td>${req.user_email || '-'}</td>
+                        <td>${req.service_type}</td>
+                        <td><span class="status-badge status-pending">분석 대기</span></td>
+                        <td><button class="btn-view" onclick="openAnalysis('${req.id}')">분석하기</button></td>
+                    </tr>
+                `).join('');
+                document.getElementById('waiting-count').innerText = data.length;
+            }
+        }
+
+        async function loadServices() {
+            const { data, error } = await supabaseClient
+                .from('fortune_services')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (data) {
+                const list = document.getElementById('service-list');
+                list.innerHTML = data.map(svc => `
+                    <tr>
+                        <td>${svc.category || '-'}</td>
+                        <td><strong>${svc.name}</strong></td>
+                        <td>${svc.price.toLocaleString()}원</td>
+                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${svc.description}</td>
+                        <td>${svc.is_popular ? '<span class="status-badge status-pending">인기</span>' : '-'}</td>
+                        <td>
+                            <button class="btn-view" onclick="openServiceModal('${svc.id}')">수정</button>
+                            <button class="btn-view btn-delete" onclick="deleteService('${svc.id}')">삭제</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function openServiceModal(id = null) {
+            const modal = document.getElementById('service-modal');
+            const form = document.getElementById('service-form');
+            form.reset();
+            document.getElementById('service-id').value = id || '';
+            document.getElementById('service-modal-title').innerText = id ? '서비스 수정' : '신규 서비스 등록';
+
+            if (id) {
+                const { data } = await supabaseClient.from('fortune_services').select('*').eq('id', id).single();
+                if (data) {
+                    document.getElementById('svc-name').value = data.name;
+                    document.getElementById('svc-price').value = data.price;
+                    document.getElementById('svc-description').value = data.description;
+                    document.getElementById('svc-category').value = data.category || '사주';
+                    document.getElementById('svc-popular').checked = data.is_popular;
+                }
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeServiceModal() {
+            document.getElementById('service-modal').style.display = 'none';
+        }
+
+        async function saveService(e) {
+            e.preventDefault();
+            const id = document.getElementById('service-id').value;
+            const serviceData = {
+                name: document.getElementById('svc-name').value,
+                price: parseInt(document.getElementById('svc-price').value),
+                description: document.getElementById('svc-description').value,
+                category: document.getElementById('svc-category').value,
+                is_popular: document.getElementById('svc-popular').checked
+            };
+
+            if (id) {
+                const { error } = await supabaseClient.from('fortune_services').update(serviceData).eq('id', id);
+                if (error) alert('수정 중 오류가 발생했습니다: ' + error.message);
+                else { alert('성공적으로 수정되었습니다.'); closeServiceModal(); }
+            } else {
+                const { error } = await supabaseClient.from('fortune_services').insert([serviceData]);
+                if (error) alert('등록 중 오류가 발생했습니다: ' + error.message);
+                else { alert('성공적으로 등록되었습니다.'); closeServiceModal(); }
+            }
+        }
+
+        async function deleteService(id) {
+            if (!confirm('정말 삭제하시겠습니까? 관련한 서비스 정보가 모두 삭제됩니다.')) return;
+            const { error } = await supabaseClient.from('fortune_services').delete().eq('id', id);
+            if (error) alert('삭제 중 오류 발생: ' + error.message);
+            else alert('삭제되었습니다.');
+        }
+
+        function goToMain() {
+            location.href = "index.html";
+        }
+    </script>
+</head>
+<body class="admin-body" style="display: none;" onload="checkAuth()">
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="f-logo" style="cursor: pointer; display: flex; align-items: center; gap: 10px;" onclick="goToMain()">
+                <img src="img/logo.png" alt="Logo" style="height: 24px;">
+                Memory AI Admin
+            </div>
+            <nav class="f-nav-col" style="margin-top: 50px;">
+                <h4 style="font-size: 0.8rem; opacity: 0.5; margin-bottom: 20px;">MANAGEMENT</h4>
+                <button class="sidebar-link active" onclick="switchTab('tab-requests', this)">
+                    <i class="fa-solid fa-list-check"></i> 분석 요청 관리
+                </button>
+                <button class="sidebar-link" onclick="switchTab('tab-services', this)">
+                    <i class="fa-solid fa-boxes-stacked"></i> 서비스 메뉴 관리
+                </button>
+                <button class="sidebar-link" onclick="goToMain()">
+                    <i class="fa-solid fa-home"></i> 메인으로 이동
+                </button>
+            </nav>
+        </aside>
+        <main class="admin-main">
+            <!-- Tab: 분석 요청 관리 -->
+            <div id="tab-requests" class="admin-tab-content active">
+                <header class="admin-header">
+                    <div>
+                        <h2 class="gold-text">실시간 분석 대시보드</h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">사용자의 사주 분석 요청을 실시간으로 확인하고 처리합니다.</p>
+                    </div>
+                    <div class="admin-stats" style="display: flex; gap: 30px;">
+                        <div class="admin-card" style="padding: 15px 30px; text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--gold);">대기 중</span>
+                            <div id="waiting-count" style="font-size: 1.5rem; font-weight: 700;">0</div>
+                        </div>
+                    </div>
+                </header>
+    
+                <div class="admin-card">
+                    <table class="request-table">
+                        <thead>
+                            <tr>
+                                <th>신청시간</th>
+                                <th>작성자</th>
+                                <th>연락처</th>
+                                <th>이메일</th>
+                                <th>서비스명</th>
+                                <th>상태</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="request-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: 서비스 메뉴 관리 -->
+            <div id="tab-services" class="admin-tab-content">
+                <header class="admin-header">
+                    <div>
+                        <h2 class="gold-text">운세 서비스 관리</h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">메인 페이지에 노출되는 운세 카테고리 및 서비스를 관리합니다.</p>
+                    </div>
+                    <button class="btn btn-gold-solid" onclick="openServiceModal()">신규 서비스 추가 <i class="fa-solid fa-plus"></i></button>
+                </header>
+
+                <div class="admin-card">
+                    <table class="request-table">
+                        <thead>
+                            <tr>
+                                <th>카테고리</th>
+                                <th>서비스명</th>
+                                <th>가격</th>
+                                <th>설명</th>
+                                <th>인기항목</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="service-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Service Edit Modal -->
+    <div id="service-modal" class="modal">
+        <div class="modal-overlay" onclick="closeServiceModal()"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" onclick="closeServiceModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="gold-text" id="service-modal-title">서비스 수정</h3>
+            <p class="modal-desc">서비스 정보를 입력해 주세요.</p>
+            
+            <form id="service-form" onsubmit="saveService(event)">
+                <input type="hidden" id="service-id">
+                <div class="admin-form-group">
+                    <label>전시 카테고리</label>
+                    <select id="svc-category">
+                        <option value="사주">사주</option>
+                        <option value="궁합">궁합</option>
+                        <option value="작명">작명</option>
+                        <option value="타로">타로</option>
+                        <option value="종합">종합</option>
+                    </select>
+                </div>
+                <div class="admin-form-group">
+                    <label>서비스명</label>
+                    <input type="text" id="svc-name" placeholder="예: 프리미엄 2026 운세" required>
+                </div>
+                <div class="admin-form-group">
+                    <label>가격 (숫자만 입력)</label>
+                    <input type="number" id="svc-price" placeholder="9900" required>
+                </div>
+                <div class="admin-form-group">
+                    <label>서비스 설명</label>
+                    <textarea id="svc-description" rows="3" placeholder="서비스에 대한 간략한 설명을 입력하세요." required></textarea>
+                </div>
+                <div class="admin-form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="svc-popular" style="width: auto;"> 인기 항목 표시 (MOST POPULAR 태그)
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-gold-solid full-width">저장하기 <i class="fa-solid fa-save"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Analysis Tool Modal (Placeholder) -->
+    <div id="analysis-modal" class="modal">
+        <div class="modal-overlay" onclick="closeAdminModal()"></div>
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close" onclick="closeAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="gold-text">사주 정밀 분석 도구</h3>
+            <div id="ai-assistant-tip" style="background: var(--gold-soft); padding: 15px; margin: 20px 0; font-size: 0.85rem; border-left: 3px solid var(--gold);">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <strong>AI 어시스턴트:</strong> Gemini 엔진이 초안을 작성했습니다. 내용을 검토 후 전송하세요.
+            </div>
+            <textarea style="width: 100%; min-height: 300px; background: #000; border: 1px solid var(--gold-line); color: var(--text-ivory); padding: 20px; font-family: inherit; font-size: 1rem;"></textarea>
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button class="btn btn-gold-solid full-width" onclick="sendResult()">최종 결과 전송 <i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAnalysis(id) {
+            document.getElementById('analysis-modal').style.display = 'flex';
+        }
+        function closeAdminModal() {
+            document.getElementById('analysis-modal').style.display = 'none';
+        }
+        function sendResult() {
+            alert("사용자에게 분석 리포트가 성공적으로 전송되었습니다.");
+            closeAdminModal();
+        }
+    </script>
+</body>
+</html>
