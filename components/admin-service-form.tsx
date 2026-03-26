@@ -6,6 +6,7 @@ import { saveServiceAction } from "@/app/admin/actions";
 
 type AdminServiceFormProps = {
   initialValues?: {
+    id?: string;
     slug?: string;
     name?: string;
     display_name?: string;
@@ -22,6 +23,7 @@ export function AdminServiceForm({ initialValues }: AdminServiceFormProps) {
 
   return (
     <form action={formAction} className="admin-inline-form">
+      <input type="hidden" name="id" defaultValue={initialValues?.id} />
       <input
         name="slug"
         placeholder="slug 예: love-deep"

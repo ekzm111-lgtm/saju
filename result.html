@@ -1,210 +1,255 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사주 리포트 | Memory Fortune AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        :root {
-            --gold-gradient: linear-gradient(135deg, #FFD700 0%, #B8860B 50%, #FFD700 100%);
-            --deep-bg: #05070a;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --border-gold: rgba(212, 175, 55, 0.3);
-        }
-        
-        body { background: var(--deep-bg); color: var(--text-ivory); font-family: 'Noto Sans KR', sans-serif; padding-bottom: 100px; }
-        .report-container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-        
-        /* 헤더 섹션 */
-        .report-header { text-align: center; margin-bottom: 60px; padding-top: 50px; }
-        .report-header h1 { font-family: 'Noto Serif KR', serif; font-size: 2.5rem; margin-bottom: 15px; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .report-meta { opacity: 0.6; font-size: 0.9rem; letter-spacing: 1px; }
-
-        /* 카드 공통 스타일 */
-        .report-card { background: var(--card-bg); border: 1px solid var(--border-gold); padding: 40px; border-radius: 4px; margin-bottom: 40px; position: relative; overflow: hidden; }
-        .report-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--gold-gradient); }
-        
-        .card-title { font-family: 'Noto Serif KR', serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
-        .card-title i { font-size: 1.2rem; }
-
-        /* 인사말 섹션 */
-        .intro-text { line-height: 1.8; font-size: 1.1rem; word-break: keep-all; }
-
-        /* 핵심 요약 */
-        .summary-box { display: flex; flex-direction: column; gap: 20px; }
-        .summary-idiom { font-size: 2rem; font-weight: 700; color: #fff; text-align: center; margin-bottom: 10px; }
-        .summary-meaning { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 30px; }
-        .strength-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .strength-item { background: rgba(255,215,0,0.05); border: 1px border var(--border-gold); padding: 15px; text-align: center; border-radius: 4px; border: 1px solid var(--border-gold); }
-
-        /* 월별 운세 */
-        .month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .month-item { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .month-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .month-num { font-weight: 700; color: var(--gold); }
-        .month-star { color: #FFD700; }
-        .month-kw { font-weight: 500; margin-bottom: 8px; font-size: 0.95rem; }
-        .month-adv { font-size: 0.85rem; opacity: 0.7; line-height: 1.5; }
-
-        /* 행운 요소 */
-        .lucky-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
-        .lucky-item { text-align: center; font-size: 0.85rem; }
-        .lucky-icon { font-size: 1.5rem; margin-bottom: 10px; color: var(--gold); }
-        .lucky-val { font-weight: 700; }
-
-        @media (max-width: 600px) {
-            .lucky-grid { grid-template-columns: repeat(3, 1fr); }
-            .report-header h1 { font-size: 1.8rem; }
-            .report-card { padding: 30px 20px; }
-        }
-
-        .btn-print { position: fixed; bottom: 30px; right: 30px; background: var(--gold-gradient); color: #000; border: none; padding: 15px 25px; border-radius: 50px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; display: flex; align-items: center; gap: 10px; z-index: 100; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>결과 리포트 | Memory Fortune AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --gold-gradient: linear-gradient(135deg, #ffd700 0%, #b8860b 50%, #ffd700 100%);
+      --deep-bg: #05070a;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --border-gold: rgba(212, 175, 55, 0.3);
+    }
+    body { background: var(--deep-bg); color: var(--text-ivory); font-family: "Noto Sans KR", sans-serif; padding-bottom: 90px; }
+    .report-container { max-width: 980px; margin: 0 auto; padding: 40px 20px; }
+    .report-header { text-align: center; margin-bottom: 36px; padding-top: 42px; }
+    .report-meta { opacity: 0.65; font-size: 0.88rem; letter-spacing: 1px; }
+    .report-header h1 { font-family: "Noto Serif KR", serif; font-size: 2.4rem; margin: 12px 0; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .report-sub { opacity: 0.8; }
+    .link-notice { border: 1px solid var(--border-gold); background: var(--card-bg); padding: 14px 16px; border-radius: 4px; margin: 0 auto 28px; max-width: 760px; text-align: center; color: var(--gold); }
+    .report-card { background: var(--card-bg); border: 1px solid var(--border-gold); padding: 30px; border-radius: 4px; margin-bottom: 22px; }
+    .card-title { font-family: "Noto Serif KR", serif; font-size: 1.35rem; color: var(--gold); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+    .card-text { line-height: 1.75; font-size: 1rem; word-break: keep-all; }
+    .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .kv-item { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.06); padding: 12px; }
+    .kv-key { color: var(--gold); font-size: 0.9rem; margin-bottom: 6px; }
+    .kv-val { font-size: 0.98rem; opacity: 0.95; }
+    .month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    .month-item { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.06); padding: 10px; }
+    .month-item b { color: var(--gold); display: block; margin-bottom: 4px; }
+    .name-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .name-item { text-align: center; border: 1px solid var(--border-gold); background: rgba(201, 168, 76, 0.08); padding: 10px 12px; }
+    .action-row { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-action { border: 1px solid var(--gold); background: transparent; color: var(--gold); padding: 12px 24px; font-weight: 700; cursor: pointer; }
+    .btn-action.primary { background: var(--gold); color: #000; }
+    #error-screen { display: none; min-height: 100vh; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+    @media (max-width: 720px) {
+      .report-header h1 { font-size: 1.7rem; }
+      .kv-grid { grid-template-columns: 1fr; }
+      .name-list { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-    <div id="star-background"></div>
+  <div id="star-background"></div>
 
-    <div class="report-container" id="report-content" style="display: none;">
-        <header class="report-header">
-            <div class="report-meta">MEMORY FORTUNE AI PREMIUM REPORT</div>
-            <h1 id="report-title">사용자님만을 위한 사주 리포트</h1>
-            <p id="report-date"></p>
-        </header>
+  <div class="report-container" id="report-content" style="display:none;">
+    <header class="report-header">
+      <div class="report-meta">MEMORY FORTUNE AI REPORT</div>
+      <h1 id="report-title"></h1>
+      <p class="report-sub" id="report-date"></p>
+    </header>
 
-        <!-- 1. 인사말 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-feather-pointed"></i> 하늘의 흐름을 읽는 지혜</h2>
-            <div id="intro-content" class="intro-text"></div>
-        </section>
+    <p class="link-notice">이 페이지 링크를 저장하면 언제든 다시 볼 수 있어요</p>
+    <div id="service-sections"></div>
 
-        <!-- 2. 핵심 요약 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-crown"></i> 당신의 타고난 기운</h2>
-            <div class="summary-box">
-                <div id="summary-idiom" class="summary-idiom"></div>
-                <div id="summary-meaning" class="summary-meaning"></div>
-                <div id="strength-list" class="strength-grid"></div>
-            </div>
-        </section>
-
-        <!-- 3. 연간 운세 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-calendar-check"></i> 2026년 대운의 흐름</h2>
-            <div id="yearly-kw" style="display: flex; gap: 10px; margin-bottom: 20px;"></div>
-            <div id="yearly-desc" class="intro-text"></div>
-        </section>
-
-        <!-- 4. 분야별 분석 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-chart-line"></i> 분야별 심층 가이드</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <div>
-                    <h4 style="color: var(--gold); margin-bottom: 10px;"><i class="fa-solid fa-coins"></i> 재물 및 직업</h4>
-                    <p id="ana-work" style="font-size: 0.9rem; line-height: 1.6; opacity: 0.8;"></p>
-                </div>
-                <div>
-                    <h4 style="color: var(--gold); margin-bottom: 10px;"><i class="fa-solid fa-heart"></i> 애정 및 인연</h4>
-                    <p id="ana-love" style="font-size: 0.9rem; line-height: 1.6; opacity: 0.8;"></p>
-                </div>
-                <div>
-                    <h4 style="color: var(--gold); margin-bottom: 10px;"><i class="fa-solid fa-shield-heart"></i> 건강 대책</h4>
-                    <p id="ana-health" style="font-size: 0.9rem; line-height: 1.6; opacity: 0.8;"></p>
-                </div>
-                <div>
-                    <h4 style="color: var(--gold); margin-bottom: 10px;"><i class="fa-solid fa-users"></i> 대인관계</h4>
-                    <p id="ana-social" style="font-size: 0.9rem; line-height: 1.6; opacity: 0.8;"></p>
-                </div>
-            </div>
-        </section>
-
-        <!-- 5. 월별 상세 운세 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-timeline"></i> 월별 상세 운세 일지</h2>
-            <div id="month-list" class="month-grid"></div>
-        </section>
-
-        <!-- 6. 행운 아이템 -->
-        <section class="report-card">
-            <h2 class="card-title"><i class="fa-solid fa-sparkles"></i> 당신을 돕는 행운의 기운</h2>
-            <div id="lucky-items" class="lucky-grid"></div>
-        </section>
-
-        <!-- 7. 마무리 -->
-        <section class="report-card" style="border: 2px solid var(--gold); background: rgba(212, 175, 55, 0.05);">
-            <i class="fa-solid fa-quote-left" style="font-size: 2rem; color: var(--gold); opacity: 0.3;"></i>
-            <div id="closing-text" class="intro-text" style="padding: 0 20px; text-align: center; font-weight: 500;"></div>
-            <div style="text-align: right; margin-top: 20px; opacity: 0.5;">- Memory Fortune AI 조언 -</div>
-        </section>
-
-        <button class="btn-print" onclick="window.print()">
-            <i class="fa-solid fa-file-pdf"></i> 리포트 인쇄 / PDF 저장
-        </button>
+    <div class="action-row">
+      <button class="btn-action primary" id="btn-pdf"><i class="fa-solid fa-file-pdf"></i> PDF 저장</button>
+      <button class="btn-action" id="btn-refresh"><i class="fa-solid fa-rotate-right"></i> 다시 보기</button>
+      <button class="btn-action" id="btn-home" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);"><i class="fa-solid fa-house"></i> 나가기</button>
     </div>
+  </div>
 
-    <div id="error-screen" style="display: none; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;">
-        <i class="fa-solid fa-circle-exclamation" style="font-size: 4rem; color: var(--gold); margin-bottom: 20px;"></i>
-        <h2>리포트를 찾을 수 없습니다.</h2>
-        <p style="opacity: 0.6; margin: 15px 0 30px;">분석이 완료된 결과가 없거나 세션이 만료되었습니다.</p>
-        <button class="btn btn-gold-solid" onclick="location.href='index.html'">메인으로 돌아가기</button>
-    </div>
+  <div id="error-screen">
+    <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--gold); margin-bottom: 16px;"></i>
+    <h2>리포트를 찾을 수 없습니다.</h2>
+    <p style="opacity: 0.7; margin: 12px 0 26px;">결과 링크를 확인해 주세요.</p>
+    <button class="btn-action primary" onclick="location.href='index.html'">메인으로 돌아가기</button>
+  </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const resultData = JSON.parse(localStorage.getItem('lastFortuneResult'));
-            const userInfo = JSON.parse(localStorage.getItem('lastUserInfo'));
+  <script>
+    const SUPABASE_URL = "https://kmrigsfjsdsfzpugtfnq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_5how-klMccwuZ5zqic_7Xw_LLkSAy6K";
 
-            if (!resultData || !userInfo) {
-                document.getElementById('error-screen').style.display = 'flex';
-                document.getElementById('report-content').style.display = 'none';
-                return;
-            }
+    function parseJSON(raw) {
+      if (!raw) return null;
+      if (typeof raw === "object") return raw;
+      try { return JSON.parse(raw); } catch (_) { return null; }
+    }
 
-            document.getElementById('report-content').style.display = 'block';
-            document.getElementById('report-date').innerText = new Date().toLocaleDateString() + " | " + userInfo.name + "님 분석 리포트";
+    function formatDate() {
+      return new Date().toLocaleDateString("ko-KR");
+    }
 
-            // 데이터 입히기
-            document.getElementById('report-title').innerText = resultData.인사말.제목;
-            document.getElementById('intro-content').innerText = resultData.인사말.내용;
-            
-            document.getElementById('summary-idiom').innerText = resultData.핵심요약.사자성어;
-            document.getElementById('summary-meaning').innerText = resultData.핵심요약.해석;
-            document.getElementById('strength-list').innerHTML = resultData.핵심요약.강점.map(s => `<div class="strength-item">${s}</div>`).join('');
+    function makeCard(title, bodyHtml, icon = "fa-star") {
+      return `
+        <section class="report-card">
+          <h2 class="card-title"><i class="fa-solid ${icon}"></i> ${title}</h2>
+          <div class="card-text">${bodyHtml}</div>
+        </section>
+      `;
+    }
 
-            document.getElementById('yearly-kw').innerHTML = resultData.연간운세.키워드.map(k => `<span class="badge" style="background: var(--gold-soft); color: var(--gold); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;"># ${k}</span>`).join('');
-            document.getElementById('yearly-desc').innerText = resultData.연간운세.상세설명;
+    function renderBasic(result) {
+      const lucky = result.행운정보 || {};
+      return [
+        makeCard("총평", result.총평 || "", "fa-feather-pointed"),
+        makeCard("오늘의 운세", result.오늘의운세 || "", "fa-sun"),
+        makeCard("이번 달 운세", result.이번달운세 || "", "fa-calendar-days"),
+        makeCard("행운 정보", `
+          <div class="kv-grid">
+            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.색상 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.숫자 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.방향 || ""}</div></div>
+          </div>
+        `, "fa-clover")
+      ].join("");
+    }
 
-            document.getElementById('ana-work').innerText = resultData.심층분석.재물직업;
-            document.getElementById('ana-love').innerText = resultData.심층분석.애정결혼;
-            document.getElementById('ana-health').innerText = resultData.심층분석.건강운;
-            document.getElementById('ana-social').innerText = resultData.심층분석.대인관계;
+    function renderPremium(result) {
+      const five = result.오행분석 || {};
+      const months = Array.isArray(result.월별운세) ? result.월별운세 : [];
+      const lucky = result.행운정보 || {};
+      return [
+        makeCard("총평", result.총평 || "", "fa-feather-pointed"),
+        makeCard("오행 분석", `
+          <div class="kv-grid">
+            <div class="kv-item"><div class="kv-key">목</div><div class="kv-val">${five.목 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">화</div><div class="kv-val">${five.화 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">토</div><div class="kv-val">${five.토 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">금</div><div class="kv-val">${five.금 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">수</div><div class="kv-val">${five.수 || ""}</div></div>
+          </div>
+        `, "fa-yin-yang"),
+        makeCard("2026년 운세", result["2026년운세"] || "", "fa-calendar-check"),
+        makeCard("월별 운세", `
+          <div class="month-grid">
+            ${months.map((m) => `<div class="month-item"><b>${m.월 || ""}</b><div>${m.운세 || ""}</div></div>`).join("")}
+          </div>
+        `, "fa-chart-line"),
+        makeCard("분야별 운세", `
+          <div class="kv-grid">
+            <div class="kv-item"><div class="kv-key">재물운</div><div class="kv-val">${result.재물운 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">애정운</div><div class="kv-val">${result.애정운 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">건강운</div><div class="kv-val">${result.건강운 || ""}</div></div>
+          </div>
+        `, "fa-briefcase"),
+        makeCard("행운 정보", `
+          <div class="kv-grid">
+            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.색상 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.숫자 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.방향 || ""}</div></div>
+          </div>
+        `, "fa-clover"),
+        makeCard("총 조언", result.총조언 || "", "fa-quote-left")
+      ].join("");
+    }
 
-            document.getElementById('month-list').innerHTML = resultData.월별운세.map(m => `
-                <div class="month-item">
-                    <div class="month-head">
-                        <span class="month-num">${m.월}</span>
-                        <span class="month-star">${m.점수}</span>
-                    </div>
-                    <div class="month-kw">${m.키워드}</div>
-                    <div class="month-adv">${m.조언}</div>
-                </div>
-            `).join('');
+    function renderCouple(result) {
+      return [
+        makeCard("궁합 점수", `<div style="font-size:2rem;color:var(--gold);font-weight:700;">${result.궁합점수 || 0}점</div>`, "fa-heart"),
+        makeCard("궁합 총평", result.궁합총평 || "", "fa-feather-pointed"),
+        makeCard("연애운", result.연애운 || "", "fa-heart-circle-check"),
+        makeCard("결혼운", result.결혼운 || "", "fa-ring"),
+        makeCard("갈등 포인트", result.갈등포인트 || "", "fa-triangle-exclamation"),
+        makeCard("극복 방법", result.극복방법 || "", "fa-handshake"),
+        makeCard("최고의 순간", result.최고의순간 || "", "fa-star")
+      ].join("");
+    }
 
-            const lucky = resultData.행운아이템;
-            document.getElementById('lucky-items').innerHTML = `
-                <div class="lucky-item"><div class="lucky-icon"><i class="fa-solid fa-palette"></i></div><div class="lucky-val">${lucky.색상}</div><div style="font-size: 0.7rem; opacity: 0.5;">색상</div></div>
-                <div class="lucky-item"><div class="lucky-icon"><i class="fa-solid fa-hashtag"></i></div><div class="lucky-val">${lucky.숫자}</div><div style="font-size: 0.7rem; opacity: 0.5;">숫자</div></div>
-                <div class="lucky-item"><div class="lucky-icon"><i class="fa-solid fa-compass"></i></div><div class="lucky-val">${lucky.방향}</div><div style="font-size: 0.7rem; opacity: 0.5;">방향</div></div>
-                <div class="lucky-item"><div class="lucky-icon"><i class="fa-solid fa-utensils"></i></div><div class="lucky-val">${lucky.음식}</div><div style="font-size: 0.7rem; opacity: 0.5;">음식</div></div>
-                <div class="lucky-item"><div class="lucky-icon"><i class="fa-solid fa-leaf"></i></div><div class="lucky-val">${lucky.꽃}</div><div style="font-size: 0.7rem; opacity: 0.5;">꽃</div></div>
-            `;
+    function renderName(result) {
+      const names = Array.isArray(result.추천이름3개) ? result.추천이름3개 : [];
+      return [
+        makeCard("이름 분석", result.이름분석 || "", "fa-signature"),
+        makeCard("이름의 기운", result.이름의기운 || "", "fa-bolt"),
+        makeCard("오행 균형", result.오행균형 || "", "fa-yin-yang"),
+        makeCard("이름이 주는 운세", result.이름이주는운세 || "", "fa-star"),
+        makeCard("개명 추천 여부", result.개명추천여부 || "", "fa-scale-balanced"),
+        makeCard("추천 이름 3개", `
+          <div class="name-list">
+            ${names.map((n) => `<div class="name-item">${n}</div>`).join("")}
+          </div>
+        `, "fa-lightbulb")
+      ].join("");
+    }
 
-            document.getElementById('closing-text').innerText = resultData.마무리;
-        });
-    </script>
+    function renderByService(serviceId, result) {
+      if (serviceId === "premium") return renderPremium(result);
+      if (serviceId === "couple") return renderCouple(result);
+      if (serviceId === "name") return renderName(result);
+      return renderBasic(result);
+    }
+
+    function showError() {
+      document.getElementById("report-content").style.display = "none";
+      document.getElementById("error-screen").style.display = "flex";
+    }
+
+    async function fetchResultById(id) {
+      if (!window.supabase || !SUPABASE_URL || !SUPABASE_KEY) return null;
+      const { createClient } = window.supabase;
+      const client = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await client
+        .from("saju_results")
+        .select("id, user_name, result_json, created_at")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        console.error("Supabase 결과 조회 실패:", error);
+        return null;
+      }
+      return data;
+    }
+
+    function renderReport(payload, fallbackName) {
+      const serviceName = payload?.serviceName || "사주분석";
+      const serviceId = payload?.serviceId || "basic";
+      const customerName = payload?.customerName || fallbackName || "고객";
+      const result = payload?.result || {};
+
+      document.getElementById("report-title").innerText = `✦ ${customerName}님의 ${serviceName} 결과`;
+      document.getElementById("report-date").innerText = `${formatDate()} 생성 리포트`;
+      document.getElementById("service-sections").innerHTML = renderByService(serviceId, result);
+      document.getElementById("report-content").style.display = "block";
+      document.getElementById("error-screen").style.display = "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id");
+      const localUser = parseJSON(localStorage.getItem("lastUserInfo"));
+      const localResult = parseJSON(localStorage.getItem("lastFortuneResult"));
+
+      let payload = localResult;
+      if (id) {
+        const row = await fetchResultById(id);
+        if (row?.result_json) {
+          payload = parseJSON(row.result_json) || row.result_json;
+          if (payload && !payload.customerName) {
+            payload.customerName = row.user_name || localUser?.name || "고객";
+          }
+        }
+      }
+
+      if (!payload || !payload.result) {
+        showError();
+        return;
+      }
+
+      renderReport(payload, localUser?.name);
+
+      document.getElementById("btn-pdf").addEventListener("click", () => window.print());
+      document.getElementById("btn-refresh").addEventListener("click", () => location.reload());
+      document.getElementById("btn-home").addEventListener("click", () => window.location.href = "index.html");
+    });
+  </script>
 </body>
 </html>

@@ -44,6 +44,7 @@ export async function saveServiceAction(
 
   const supabase = await createSupabaseServer();
   const { error } = await supabase.from("services").upsert({
+    id: formData.get("id") ? String(formData.get("id")) : undefined,
     slug,
     name,
     display_name: displayName,

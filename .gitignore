@@ -1,14 +1,23 @@
-# 백업 폴더 제외
+# backups
 backups/
 
-# node_modules 제외
+# dependencies
 node_modules/
 
-# 환경변수 제외
+# build outputs
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# environment files
 .env
 .env.local
 
-# 기타
+# misc
 .DS_Store
 Thumbs.db
 *.bak
+.claude/
+node_modules

@@ -21,8 +21,9 @@ export type OrderRecord = {
   privacyConsent: boolean;
   marketingConsent: boolean;
   payMethod: PaymentFormState["payMethod"];
-  status: "ready" | "paid" | "failed";
+  status: "ready" | "paid" | "failed" | "refunded";
   resultLink: string;
+  resultJson?: any;
   createdAt: string;
 };
 
@@ -79,13 +80,14 @@ export async function createOrder(form: PaymentFormState) {
     const supabase = await createSupabaseServer();
     await supabase.from("payments").insert({
       order_id: record.orderId,
-      service_name: record.serviceTitle,
-      user_name: record.customerName,
-      user_email: record.customerEmail,
+      service_name_snapshot: record.serviceTitle,
+      buyer_name: record.customerName,
+      buyer_email: record.customerEmail,
+      buyer_phone: record.customerPhone,
       amount: record.amount,
       payment_method: record.payMethod,
       status: record.status,
-      payment_id: record.paymentId,
+      portone_payment_id: record.paymentId,
       result_link: record.resultLink,
       raw_payload: {
         paymentId: record.paymentId,
@@ -130,8 +132,8 @@ export async function markOrderPaid({
       .from("payments")
       .update({
         status: "paid",
-        payment_id: paymentId,
-        paid_at: new Date().toISOString(),
+        portone_payment_id: paymentId,
+        approved_at: new Date().toISOString(),
         raw_payload: rawPayload
       })
       .eq("order_id", orderId);
@@ -160,7 +162,33 @@ export async function getOrder(orderId?: string | null) {
       .select("*")
       .eq("order_id", orderId)
       .maybeSingle();
-    return data;
+    
+    if (data) {
+      const rawPayload = (data.raw_payload as any) || {};
+      return {
+        orderId: data.order_id,
+        paymentId: data.portone_payment_id || rawPayload.paymentId,
+        serviceSlug: rawPayload.serviceSlug,
+        serviceTitle: data.service_name_snapshot,
+        amount: data.amount,
+        customerName: data.buyer_name,
+        customerEmail: data.buyer_email,
+        customerPhone: data.buyer_phone || rawPayload.phone,
+        birthDate: rawPayload.birthDate,
+        birthTime: rawPayload.birthTime,
+        gender: rawPayload.gender,
+        question: rawPayload.question,
+        calendarType: rawPayload.calendarType,
+        privacyConsent: rawPayload.privacyConsent,
+        marketingConsent: rawPayload.marketingConsent,
+        payMethod: data.payment_method,
+        status: data.status,
+        resultLink: data.result_link,
+        resultJson: data.result_json,
+        createdAt: data.created_at
+      } as OrderRecord;
+    }
+    return null;
   }
 
   return memoryOrders.get(orderId) ?? null;
@@ -221,4 +249,28 @@ export async function updatePaymentFromWebhook(input: {
   }
 
   await query;
+}
+
+export async function saveOrderResult(orderId: string, resultJson: any) {
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseServer();
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        result_json: resultJson,
+        status: "paid"
+      })
+      .eq("order_id", orderId);
+    
+    if (error) throw error;
+    return;
+  }
+
+  const current = memoryOrders.get(orderId);
+  if (current) {
+    memoryOrders.set(orderId, {
+      ...current,
+      resultJson
+    });
+  }
 }

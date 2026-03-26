@@ -1,0 +1,455 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Fortune AI | 당신의 운명을 읽어드립니다</title>
+    <!-- Fonts: Noto Serif KR (Headers) + Noto Sans KR (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome & AOS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- SDKs -->
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div id="star-background"></div>
+
+    <!-- 1. Header Navigation (Glassmorphism + Underline Animation) -->
+    <header class="header">
+        <div class="container nav-content">
+            <a href="#" class="logo">
+                <img src="img/logo.png" alt="Logo" class="main-logo">
+                Memory Fortune AI
+            </a>
+            <nav class="nav">
+                <div class="nav-item"><a href="#services" class="nav-link">서비스</a></div>
+                <div class="nav-item"><a href="#how-to" class="nav-link">오늘의 띠별 운세</a></div>
+                <div class="nav-item"><a href="#reviews" class="nav-link">고객후기</a></div>
+                <div class="nav-item"><a href="#contact" class="nav-link">문의하기</a></div>
+            </nav>
+            <a href="#services" class="btn-cta"><i class="fa-solid fa-sparkles"></i> 지금 시작하기</a>
+        </div>
+    </header>
+
+    <!-- 2. Hero Section (Ken Burns Effect + High Typography) -->
+    <section class="hero" id="home">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+        <div class="container hero-inner" data-aos="fade-up" data-aos-duration="1500">
+            <p class="hero-kicker">PREMIUM AI ASTROLOGY</p>
+            <h1 class="hero-title">
+                당신의 운명을
+                <span class="gold-text">별이 말해줍니다</span>
+            </h1>
+            <p class="hero-description">
+                동양의 고전 사주명리학과 최신 AI 알고리즘의 결합.<br>
+                당신의 길을 바꾸는 정교한 데이터를 30초 만에 만나보세요.
+            </p>
+            <div class="hero-actions">
+                <a href="#services" class="btn btn-gold-fill">운명 리포트 확인하기 <i class="fa-solid fa-arrow-right"></i></a>
+                <div class="hero-stats">
+                    <span class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                    <span class="count">4.9/5.0 (2,418 Reviews)</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-ticker">
+            <div class="container">
+                <span class="ticker-label">LATEST</span>
+                <span class="ticker-text">실시간 AI 엔진 업데이트 완료: 2026년 신년 운세 정확도 98% 달성</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Stat Section -->
+    <section class="stats-section">
+        <div class="container stats-grid">
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="stat-num">12,000+</div>
+                <p>누적 분석 리포트</p>
+            </div>
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="stat-num">99.2%</div>
+                <p>사용자 만족도</p>
+            </div>
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="stat-num">30sec</div>
+                <p>AI 평균 해석 소요시간</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Service Selection Grid -->
+    <section id="services" class="services">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p>CHOOSE YOUR DESTINY</p>
+                <h2>원하는 운세를 선택하세요</h2>
+            </div>
+            <div class="service-grid">
+                <!-- app.js에서 동적으로 로드됩니다 -->
+                <div style="grid-column: 1 / -1; text-align: center; padding: 50px; opacity: 0.5;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                    <p>최신 운세 서비스를 불러오는 중입니다...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Guide Section -->
+    <section id="how-to" class="guide-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p>HOW IT WORKS</p>
+                <h2>3단계로 진행됩니다</h2>
+            </div>
+            <div class="step-grid">
+                <div class="step-box" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="step-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                    <h3>01 정보입력</h3>
+                    <p>생년월일시 등 기본 정보를 정확하게 입력합니다.</p>
+                </div>
+                <div class="step-line" data-aos="fade-in" data-aos-delay="200"></div>
+                <div class="step-box" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="step-icon"><i class="fa-solid fa-credit-card"></i></div>
+                    <h3>02 안전결제</h3>
+                    <p>포트원을 통해 안전하게 분석 비용을 결제합니다.</p>
+                </div>
+                <div class="step-line" data-aos="fade-in" data-aos-delay="400"></div>
+                <div class="step-box" data-aos="zoom-in" data-aos-delay="500">
+                    <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+                    <h3>03 AI 분석</h3>
+                    <p>AI 엔진이 사주를 분석하여 30초 내 리포트를 생성합니다.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Report Preview (Tokyo Facility Style) -->
+    <section class="preview-section">
+        <div class="container preview-layout" data-aos="fade-right">
+            <div class="preview-img">
+                <div class="img-blur-frame">
+                    <img src="img/re.jpg" alt="Report Preview">
+                    <div class="img-overlay">
+                        <i class="fa-solid fa-lock"></i>
+                        <p>결제 후 전체 리포트 열람 가능</p>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-text">
+                <div class="tag-row">
+                    <span class="tag">AI 정밀 분석</span>
+                    <span class="tag">PDF 저장 가능</span>
+                </div>
+                <h3>정보만 입력하면<br>사주 리포트를 받아볼 수 있습니다</h3>
+                <p>단순한 좋은 운세를 넘어, 당신의 실행 분포와 사회적 성공 타이밍, 조심해야 할 시기까지 차트로 시각화해 제공합니다.</p>
+                <ul class="benefit-list">
+                    <li><i class="fa-solid fa-circle-check"></i> 오행의 조화와 균형 정밀 분석</li>
+                    <li><i class="fa-solid fa-circle-check"></i> 10년 대운 및 1년 월운 흐름</li>
+                    <li><i class="fa-solid fa-circle-check"></i> 직업, 재물, 연애별 맞춤 조언</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. Review Section -->
+    <section id="reviews" class="reviews-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p>TESTIMONIALS</p>
+                <h2>고객 만족의 증거</h2>
+            </div>
+            <div class="review-grid">
+                <div class="review-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                    <p>"사주를 많이 봐왔지만 AI가 이렇게 자세하게 해줄 줄은 몰랐어요. 직장 고민이 많았는데 리포트 보고 방향을 잡았습니다."</p>
+                    <div class="author">김지* · 30대 직장인</div>
+                </div>
+                <div class="review-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                    <p>"여자친구와 궁합 봤는데 정말 소름 돋게 잘 맞아요. 리포트 내용도 너무 길고 자세해서 돈이 아깝지 않았습니다."</p>
+                    <div class="author">이수* · 20대</div>
+                </div>
+                <div class="review-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                    <p>"개명 전문도 고민이었는데 이름 분석 서비스가 꽤 괜찮았어요. 조만간 작명 컨설팅도 신청할 예정입니다."</p>
+                    <div class="author">박현* · 40대</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. Contact (Refined Form) -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="contact-box" data-aos="fade-up">
+                <div class="section-header">
+                    <p>GET IN TOUCH</p>
+                    <h2>궁금한 점이 있으신가요?</h2>
+                    <p class="subtitle">서비스 이용 문의나 오류 제보는 아래 양식을 통해 남겨주세요.</p>
+                </div>
+                <form id="contactForm" class="contact-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>성함 <span>필수</span></label>
+                            <input type="text" id="cName" placeholder="성함을 입력해 주세요" required>
+                        </div>
+                        <div class="form-group">
+                            <label>연락처 <span>필수</span></label>
+                            <input type="tel" id="cPhone" placeholder="010-0000-0000" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>문의 내용 <span>필수</span></label>
+                        <textarea id="cMessage" rows="5" placeholder="문의하실 내용을 자세히 적어주세요" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-gold-fill full-width">문의 메시지 보내기</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- 9. Final CTA -->
+    <section class="final-cta">
+        <div class="container">
+            <div class="cta-inner" data-aos="zoom-out">
+                <h2>당신의 내일은<br><span class="gold-text">오늘보다 빛날 자격이 있습니다.</span></h2>
+                <p>지금 바로 AI 명리학 엔진의 정확한 조언을 받아보세요.</p>
+                <a href="#services" class="btn btn-gold-solid">무료로 시작하기 <i class="fa-solid fa-sparkles"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 10. Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-top">
+                <div class="f-info">
+                    <div class="f-logo">
+                        <img src="img/logo.png" alt="Logo" class="main-logo footer-logo">
+                        Memory Fortune AI
+                    </div>
+                    <p>데이터 과학 기반의 차세대 운세 분석 플랫폼<br>전통 지식을 현대적인 알고리즘으로 해석합니다.</p>
+                    <div class="f-contact">
+                        <span><i class="fa-solid fa-envelope"></i> help@saju-master.ai</span>
+                    </div>
+                </div>
+                <div class="f-nav-col">
+                    <h4>SERVICES</h4>
+                    <ul>
+                        <li><a href="#">기본 사주분석</a></li>
+                        <li><a href="#">프리미엄 리포트</a></li>
+                        <li><a href="#">커플 궁합</a></li>
+                        <li><a href="#">이름풀이</a></li>
+                    </ul>
+                </div>
+                <div class="f-nav-col">
+                    <h4>PLATFORM</h4>
+                    <ul>
+                        <li><a href="#">이용약관</a></li>
+                        <li><a href="#">개인정보처리방침</a></li>
+                        <li><a href="#">환불정책</a></li>
+                        <li style="margin-top: 25px;"><a href="admin.html" class="admin-link"><i class="fa-solid fa-lock"></i> Admin</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Memory Fortune AI. All rights reserved. 결제는 포트원을 통해 안전하게 처리됩니다.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="gold-text">분석 정보 입력</h3>
+            <div id="selected-service-badge" class="service-badge-container">
+                <span class="svc-name">기본 사주분석</span>
+                <span class="svc-price">₩3,900</span>
+            </div>
+            <p class="modal-desc">정확한 분석을 위해 실제 정보를 입력해 주세요.</p>
+            <form id="saju-form">
+                <p id="self-info-title" style="display: none; color: var(--gold); font-weight: 700; margin-bottom: 15px; text-align: left;">본인 정보</p>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>이름</label>
+                        <input type="text" id="user-name" placeholder="성함 입력" required>
+                    </div>
+                    <div class="input-group">
+                        <label>휴대폰 번호</label>
+                        <input type="tel" id="user-phone" placeholder="010-0000-0000" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>이메일 주소</label>
+                    <input type="email" id="user-email" placeholder="example@email.com" required>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>생년월일 (8자리)</label>
+                        <input type="text" id="user-birth" placeholder="예: 19900101" required>
+                    </div>
+                    <div class="input-group">
+                        <label>양력/음력</label>
+                        <select id="calendar-type">
+                            <option value="solar">양력</option>
+                            <option value="lunar">음력</option>
+                            <option value="lunar-leap">음력(윤달)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>성별</label>
+                        <select id="user-gender">
+                            <option value="female">여성</option>
+                            <option value="male">남성</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>태어난 시간</label>
+                        <select id="user-time">
+                            <option value="unknown">모름</option>
+                            <option value="00">00시 (자시)</option>
+                            <option value="01">01시</option>
+                            <option value="02">02시 (축시)</option>
+                            <option value="03">03시</option>
+                            <option value="04">04시 (인시)</option>
+                            <option value="05">05시</option>
+                            <option value="06">06시 (묘시)</option>
+                            <option value="07">07시</option>
+                            <option value="08">08시 (진시)</option>
+                            <option value="09">09시</option>
+                            <option value="10">10시 (사시)</option>
+                            <option value="11">11시</option>
+                            <option value="12">12시 (오시)</option>
+                            <option value="13">13시</option>
+                            <option value="14">14시 (미시)</option>
+                            <option value="15">15시</option>
+                            <option value="16">16시 (신시)</option>
+                            <option value="17">17시</option>
+                            <option value="18">18시 (유시)</option>
+                            <option value="19">19시</option>
+                            <option value="20">20시 (술시)</option>
+                            <option value="21">21시</option>
+                            <option value="22">22시 (해시)</option>
+                            <option value="23">23시</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="couple-section" style="display: none; margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--border-light);">
+                    <p style="color: var(--gold); font-weight: 700; margin-bottom: 15px;">상대방 정보</p>
+                    <div class="input-group">
+                        <label>상대 이름</label>
+                        <input type="text" id="partner-name" placeholder="상대 이름 입력">
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>상대 생년월일 (8자리)</label>
+                            <input type="text" id="partner-birth" placeholder="예: 19900101">
+                        </div>
+                        <div class="input-group">
+                            <label>상대 양력/음력</label>
+                            <select id="partner-calendar">
+                                <option value="solar">양력</option>
+                                <option value="lunar">음력</option>
+                                <option value="lunar-leap">음력(윤달)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>상대 성별</label>
+                            <select id="partner-gender">
+                                <option value="female">여성</option>
+                                <option value="male">남성</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>상대 태어난 시간</label>
+                            <select id="partner-time">
+                                <option value="unknown">모름</option>
+                                <option value="00">00시 (자시)</option>
+                                <option value="02">02시 (축시)</option>
+                                <option value="04">04시 (인시)</option>
+                                <option value="06">06시 (묘시)</option>
+                                <option value="08">08시 (진시)</option>
+                                <option value="10">10시 (사시)</option>
+                                <option value="12">12시 (오시)</option>
+                                <option value="14">14시 (미시)</option>
+                                <option value="16">16시 (신시)</option>
+                                <option value="18">18시 (유시)</option>
+                                <option value="20">20시 (술시)</option>
+                                <option value="22">22시 (해시)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privacy Consent -->
+                <div class="consent-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="privacy-agree" required>
+                        <span class="checkmark"></span>
+                        <span class="label-text">개인정보 수집 및 이용 동의 (필수)</span>
+                    </label>
+                    <a href="#" class="view-terms">[약관보기]</a>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="payment-selection">
+                    <label>결제 수단 선택</label>
+                    <div class="payment-grid">
+                        <label class="payment-option">
+                            <input type="radio" name="pay-method" value="card" checked>
+                            <div class="pay-card">
+                                <i class="fa-solid fa-credit-card gold-text"></i>
+                                <span>신용카드</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="pay-method" value="kakaopay">
+                            <div class="pay-card">
+                                <i class="fa-solid fa-comment gold-text"></i>
+                                <span>카카오페이</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="pay-method" value="naverpay">
+                            <div class="pay-card">
+                                <i class="fa-solid fa-n gold-text"></i>
+                                <span>네이버페이</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="pay-method" value="tosspay">
+                            <div class="pay-card">
+                                <i class="fa-solid fa-bolt gold-text"></i>
+                                <span>토스페이</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-gold-solid full-width">결제하기</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

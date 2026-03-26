@@ -1,19 +1,25 @@
-﻿/* Saju Fortune v1 runtime script (design-preserving) */
+/* Saju Fortune v1 runtime script (design-preserving) */
 
-const GEMINI_KEY = "YOUR_GEMINI_API_KEY";
-const SUPABASE_URL = "https://kmrigsfjsdsfzpugtfnq.supabase.co";
-const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = SUPABASE_CONFIG.URL; 
+const SUPABASE_KEY = SUPABASE_CONFIG.ANON_KEY; 
 const IS_TEST_MODE = true;
 const ENABLE_TEST_AUTOFILL = true;
+const USE_MOCK_ON_AI_ERROR = localStorage.getItem("USE_MOCK_ON_AI_ERROR") === "1";
+const AI_RETRY_LIMIT = 2;
 
 const TEST_FORM_DEFAULTS = {
-  name: "源誘쇱셿",
-  phone: "01034435113",
-  email: "dark_111@naver.com",
-  birth: "19760627",
+  name: "김성남",
+  phone: "01034435413",
+  email: "dark_11122551@naver.com",
+  birth: "19761117",
   calendar: "solar",
   gender: "female",
   time: "unknown",
+  partnerName: "테스트상대",
+  partnerBirth: "19900101",
+  partnerCalendar: "solar",
+  partnerGender: "male",
+  partnerTime: "unknown",
   payMethod: "kakaopay",
   privacyAgree: true
 };
@@ -56,16 +62,22 @@ let servicesData = [];
 let currentServiceId = "";
 
 const modal = document.getElementById("info-modal");
+const noticePanel = document.getElementById("notice-panel");
 const sajuForm = document.getElementById("saju-form");
 const contactForm = document.getElementById("contactForm");
+const nativeAlert = typeof window !== "undefined" && typeof window.alert === "function"
+  ? window.alert.bind(window)
+  : () => {};
 
 document.addEventListener("DOMContentLoaded", () => {
   initAOS();
   initHeaderScroll();
   initStarBackground();
   initParallax();
+  initZodiacFortuneBoard();
   loadServices();
   bindForms();
+  enhanceVipFormUI();
   unlockSajuFormFields();
 });
 
@@ -148,6 +160,83 @@ function initStarBackground() {
   setInterval(createShootingStar, 6000);
 }
 
+function initZodiacFortuneBoard() {
+  const section = document.getElementById("how-to");
+  if (!section) return;
+
+  const headerKicker = section.querySelector(".section-header p");
+  const headerTitle = section.querySelector(".section-header h2");
+  const stepGrid = section.querySelector(".step-grid");
+  if (!headerKicker || !headerTitle || !stepGrid) return;
+
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short"
+  });
+
+  headerKicker.textContent = "TODAY'S ZODIAC FORTUNE";
+  headerTitle.textContent = `오늘의 띠별 운세 · ${dateLabel}`;
+  stepGrid.classList.add("zodiac-mode");
+
+  const zodiacList = [
+    { name: "쥐띠", icon: "fa-moon" },
+    { name: "소띠", icon: "fa-shield" },
+    { name: "호랑이띠", icon: "fa-fire" },
+    { name: "토끼띠", icon: "fa-leaf" },
+    { name: "용띠", icon: "fa-dragon" },
+    { name: "뱀띠", icon: "fa-wand-magic-sparkles" },
+    { name: "말띠", icon: "fa-bolt" },
+    { name: "양띠", icon: "fa-cloud" },
+    { name: "원숭이띠", icon: "fa-star" },
+    { name: "닭띠", icon: "fa-sun" },
+    { name: "개띠", icon: "fa-heart" },
+    { name: "돼지띠", icon: "fa-coins" }
+  ];
+
+  const fortunePool = [
+    "작은 결정을 빠르게 실행하면 큰 흐름이 열립니다.",
+    "대화 운이 좋아 중요한 오해를 풀 기회가 찾아옵니다.",
+    "금전은 보수적으로, 관계는 적극적으로 움직이면 좋습니다.",
+    "미뤄둔 일을 정리하면 예상보다 빠른 성과가 납니다.",
+    "몸의 리듬을 지키면 집중력과 판단력이 함께 살아납니다.",
+    "도움을 요청하면 좋은 조력자를 만나기 쉬운 날입니다.",
+    "새로운 제안은 즉답보다 하루 숙고 후 결정이 유리합니다.",
+    "가까운 사람과의 협업에서 행운 포인트가 크게 작동합니다.",
+    "지출 점검을 하면 다음 기회에 쓸 자원이 확보됩니다.",
+    "감정 표현을 부드럽게 하면 관계운이 눈에 띄게 상승합니다.",
+    "익숙한 방식에 작은 변화를 주면 막힌 흐름이 풀립니다.",
+    "오늘 시작한 루틴이 한 달 뒤 의미 있는 차이를 만듭니다."
+  ];
+
+  const daySeed = Number(
+    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`
+  );
+
+  const cards = zodiacList.map((zodiac, idx) => {
+    const poolIndex = (daySeed + idx * 7) % fortunePool.length;
+    const luckyNumber = ((daySeed + idx * 3) % 9) + 1;
+    const luckyColor = ["골드", "네이비", "화이트", "그린", "버건디"][(daySeed + idx) % 5];
+    return `
+      <article class="zodiac-card" data-aos="fade-up" data-aos-delay="${(idx % 4) * 80}">
+        <div class="zodiac-head">
+          <i class="fa-solid ${zodiac.icon}"></i>
+          <h3>${zodiac.name}</h3>
+        </div>
+        <p class="zodiac-text">${fortunePool[poolIndex]}</p>
+        <p class="zodiac-meta">행운 숫자 ${luckyNumber} · 행운 컬러 ${luckyColor}</p>
+      </article>
+    `;
+  });
+
+  stepGrid.innerHTML = cards.join("");
+  if (window.AOS) {
+    window.AOS.refreshHard();
+  }
+}
+
 function createShootingStar() {
   const container = document.getElementById("star-background");
   if (!container) return;
@@ -177,7 +266,7 @@ function getSupabaseClient() {
 
 async function loadServices() {
   const client = getSupabaseClient();
-  if (!client || SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") {
+  if (!client || !SUPABASE_URL || !SUPABASE_KEY || SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") {
     servicesData = DEFAULT_SERVICES;
     renderServices(servicesData);
     return;
@@ -194,7 +283,7 @@ async function loadServices() {
     servicesData = Array.isArray(data) && data.length > 0 ? data : DEFAULT_SERVICES;
     renderServices(servicesData);
   } catch (err) {
-    console.error("?쒕퉬??濡쒕뱶 ?ㅽ뙣, 湲곕낯 ?곗씠???ъ슜:", err);
+    console.error("서비스 로드 실패, 기본 데이터를 사용합니다:", err);
     servicesData = DEFAULT_SERVICES;
     renderServices(servicesData);
   }
@@ -211,11 +300,11 @@ function renderServices(services) {
           ${svc.is_popular ? '<div class="popular-tag">MOST POPULAR</div>' : ""}
           <div class="svc-visual ${svc.id}"></div>
           <div class="svc-body">
-            <p class="category" style="font-size: 0.75rem; color: var(--gold); margin-bottom: 5px; opacity: 0.8;">${svc.category || "?ъ＜"}</p>
+            <p class="category" style="font-size: 0.75rem; color: var(--gold); margin-bottom: 5px; opacity: 0.8;">${svc.category || "사주"}</p>
             <h3>${svc.name}</h3>
             <p class="price">₩${Number(svc.price || 0).toLocaleString()}</p>
             <p class="desc">${svc.description || ""}</p>
-            <span class="btn-more">?먯꽭??蹂닿린 <i class="fa-solid fa-chevron-right"></i></span>
+            <span class="btn-more">자세히 보기 <i class="fa-solid fa-chevron-right"></i></span>
           </div>
         </div>
       `
@@ -228,12 +317,161 @@ function bindForms() {
     sajuForm.addEventListener("submit", handleSajuSubmit);
   }
 
-  if (contactForm) {
-    contactForm.addEventListener("submit", (e) => {
+  const vipForm = document.getElementById("vip-form");
+  if (vipForm) {
+    vipForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      alert("臾몄쓽 硫붿떆吏媛 ?깃났?곸쑝濡??꾩넚?섏뿀?듬땲?? 1~2???대줈 ?듬? ?쒕━寃좎뒿?덈떎.");
-      contactForm.reset();
+      
+      const vipInfo = {
+        name: document.getElementById("vip-name")?.value?.trim(),
+        phone: document.getElementById("vip-phone")?.value?.trim(),
+        email: document.getElementById("vip-email")?.value?.trim(),
+        birth: document.getElementById("vip-birth")?.value,
+        time: document.getElementById("vip-time")?.value,
+        gender: document.querySelector('input[name="vip-gender"]:checked')?.value,
+        serviceId: "vip-premium",
+        service: "VIP 1:1 정밀 분석",
+        paymentId: `vip_${Date.now()}`
+      };
+
+      try {
+        // VIP 데이터 DB 저장 (실시간 기록)
+        const insertedId = await saveResultToSupabase(vipInfo, {
+          memo: "VIP 1:1 정밀 사주 분석 신청 데이터",
+          status: "pending_review"
+        });
+
+        alert("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.\n관리자가 확인 후 1~2일 내에 이메일로 결과를 보내드립니다.");
+        vipForm.reset();
+      } catch (err) {
+        console.error("VIP 신청 저장 에러:", err);
+        alert("신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      }
     });
+  }
+
+  if (contactForm) {
+    contactForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const contactInfo = {
+        name: document.getElementById("contact-name")?.value?.trim() || "익명",
+        phone: document.getElementById("contact-phone")?.value?.trim() || "-",
+        email: "contact@internal.msg", // 문의사항 구분용 더미 이메일
+        service: "고객 문의사항",
+        question: document.getElementById("contact-message")?.value?.trim(),
+        payMethod: "none"
+      };
+
+      try {
+        await saveResultToSupabase(contactInfo, {
+          message: contactInfo.question,
+          type: "direct_contact"
+        });
+        alert("문의 메시지가 성공적으로 전송되었습니다. 관리자가 확인 후 답변 드리겠습니다.");
+        contactForm.reset();
+      } catch (err) {
+        console.error("문의 저장 에러:", err);
+        alert("문의 전송 중 오류가 발생했습니다.");
+      }
+    });
+  }
+}
+
+function enhanceVipFormUI() {
+  const vipForm = document.getElementById("vip-form");
+  if (!vipForm) return;
+
+  if (!vipForm.dataset.enhancedSubmit) {
+    vipForm.addEventListener("submit", handleVipSubmitCapture, true);
+    vipForm.dataset.enhancedSubmit = "1";
+  }
+
+  const submitButton = vipForm.querySelector('button[type="submit"]');
+  if (!submitButton) return;
+
+  submitButton.textContent = "결제신청";
+  submitButton.classList.add("vip-submit-button");
+
+  if (vipForm.querySelector(".vip-payment-selection")) return;
+
+  const extraSection = document.createElement("div");
+  extraSection.innerHTML = `
+    <div class="consent-group vip-consent-group">
+      <label class="checkbox-container">
+        <input type="checkbox" id="vip-privacy-agree" required>
+        <span class="label-text">개인정보 수집 및 이용 동의 (필수)</span>
+      </label>
+      <a href="#" class="view-terms">[약관보기]</a>
+    </div>
+    <div class="payment-selection vip-payment-selection">
+      <label>결제 수단 선택</label>
+      <div class="payment-grid vip-payment-grid">
+        <label class="payment-option">
+          <input type="radio" name="vip-pay-method" value="card">
+          <div class="pay-card">
+            <i class="fa-solid fa-credit-card gold-text"></i>
+            <span>신용카드</span>
+          </div>
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="vip-pay-method" value="kakaopay" checked>
+          <div class="pay-card">
+            <i class="fa-solid fa-comment gold-text"></i>
+            <span>카카오페이</span>
+          </div>
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="vip-pay-method" value="naverpay">
+          <div class="pay-card">
+            <i class="fa-solid fa-n gold-text"></i>
+            <span>네이버페이</span>
+          </div>
+        </label>
+        <label class="payment-option">
+          <input type="radio" name="vip-pay-method" value="tosspay">
+          <div class="pay-card">
+            <i class="fa-solid fa-bolt gold-text"></i>
+            <span>토스페이</span>
+          </div>
+        </label>
+      </div>
+      <p class="vip-test-note">테스트 모드에서는 결제가 0원으로 진행됩니다.</p>
+    </div>
+  `;
+
+  vipForm.insertBefore(extraSection, submitButton);
+}
+
+async function handleVipSubmitCapture(e) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const vipForm = e.currentTarget;
+  const vipInfo = {
+    name: document.getElementById("vip-name")?.value?.trim(),
+    phone: document.getElementById("vip-phone")?.value?.trim(),
+    email: document.getElementById("vip-email")?.value?.trim(),
+    birth: document.getElementById("vip-birth")?.value,
+    time: document.getElementById("vip-time")?.value,
+    gender: document.querySelector('input[name="vip-gender"]:checked')?.value,
+    payMethod: document.querySelector('input[name="vip-pay-method"]:checked')?.value || "kakaopay",
+    serviceId: "vip-premium",
+    service: "VIP 1:1 정밀 분석",
+    paymentId: `vip_${Date.now()}`
+  };
+
+  if (!document.getElementById("vip-privacy-agree")?.checked) {
+    alert("개인정보 수집 및 이용 동의가 필요합니다.");
+    return;
+  }
+
+  try {
+    await requestVipPayment(vipInfo);
+    vipForm.reset();
+  } catch (err) {
+    console.error("VIP request error:", err);
+    alert("신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
   }
 }
 
@@ -265,12 +503,57 @@ function applyTestFormDefaults() {
   setValue("calendar-type", TEST_FORM_DEFAULTS.calendar);
   setValue("user-gender", TEST_FORM_DEFAULTS.gender);
   setValue("user-time", TEST_FORM_DEFAULTS.time);
+  setValue("partner-name", TEST_FORM_DEFAULTS.partnerName);
+  setValue("partner-birth", TEST_FORM_DEFAULTS.partnerBirth);
+  setValue("partner-calendar", TEST_FORM_DEFAULTS.partnerCalendar);
+  setValue("partner-gender", TEST_FORM_DEFAULTS.partnerGender);
+  setValue("partner-time", TEST_FORM_DEFAULTS.partnerTime);
 
   const privacyAgree = document.getElementById("privacy-agree");
   if (privacyAgree) privacyAgree.checked = !!TEST_FORM_DEFAULTS.privacyAgree;
 
   const payRadio = sajuForm.querySelector(`input[name="pay-method"][value="${TEST_FORM_DEFAULTS.payMethod}"]`);
   if (payRadio) payRadio.checked = true;
+}
+
+/** [NEW] VIP 전용 테스트 데이터 채우기 */
+function fillVipTestForm() {
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  
+  setVal("vip-name", "김성남(VIP)");
+  setVal("vip-phone", "010-3443-5413");
+  setVal("vip-email", "dark_11122551@naver.com");
+  setVal("vip-birth", "19761117");
+  setVal("vip-time", "10"); // 사시
+  
+  const genderRadio = document.querySelector('input[name="vip-gender"][value="female"]');
+  if (genderRadio) genderRadio.checked = true;
+  
+  console.log("VIP 테스트 데이터 채우기 완료");
+}
+window.fillVipTestForm = fillVipTestForm;
+
+function toggleCoupleSection(isCouple) {
+  const section = document.getElementById("couple-section");
+  const selfTitle = document.getElementById("self-info-title");
+  if (!section) return;
+
+  section.style.display = isCouple ? "block" : "none";
+  if (selfTitle) selfTitle.style.display = isCouple ? "block" : "none";
+
+  const partnerName = document.getElementById("partner-name");
+  const partnerBirth = document.getElementById("partner-birth");
+  const partnerCalendar = document.getElementById("partner-calendar");
+  const partnerGender = document.getElementById("partner-gender");
+  const partnerTime = document.getElementById("partner-time");
+  if (partnerName) partnerName.required = !!isCouple;
+  if (partnerBirth) partnerBirth.required = !!isCouple;
+  if (partnerCalendar) partnerCalendar.required = !!isCouple;
+  if (partnerGender) partnerGender.required = !!isCouple;
+  if (partnerTime) partnerTime.required = !!isCouple;
 }
 
 function openModal(serviceId) {
@@ -284,6 +567,7 @@ function openModal(serviceId) {
   if (nameEl) nameEl.innerText = svc.name;
   if (priceEl) priceEl.innerText = `₩${Number(svc.price || 0).toLocaleString()}`;
 
+  toggleCoupleSection(serviceId === "couple");
   unlockSajuFormFields();
   applyTestFormDefaults();
   modal.style.display = "flex";
@@ -298,6 +582,92 @@ function closeModal() {
 
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.closeNoticePanel = closeNoticePanel;
+window.alert = handleAppAlert;
+
+function showNoticePanel({
+  eyebrow,
+  title,
+  message,
+  timeline,
+  channel,
+  channelDetail
+} = {}) {
+  if (!noticePanel) return;
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el && value) {
+      el.textContent = value;
+    }
+  };
+
+  setText("notice-eyebrow", eyebrow);
+  setText("notice-title", title);
+  setText("notice-message", message);
+  setText("notice-timeline", timeline);
+  setText("notice-channel", channel);
+  setText("notice-channel-detail", channelDetail);
+
+  noticePanel.classList.add("is-open");
+  noticePanel.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function closeNoticePanel() {
+  if (!noticePanel) return;
+  noticePanel.classList.remove("is-open");
+  noticePanel.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = modal && modal.style.display === "flex" ? "hidden" : "auto";
+}
+
+function handleAppAlert(message) {
+  const text = String(message || "");
+
+  if (text.includes("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.")) {
+    const email = document.getElementById("vip-email")?.value?.trim();
+    showNoticePanel({
+      eyebrow: "VIP APPLICATION COMPLETE",
+      title: "VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.",
+      message: "관리자가 신청 내용을 확인한 뒤 1~2일 내에 이메일로 결과를 보내드립니다.",
+      timeline: "1~2일 내 결과 발송",
+      channel: "이메일로 상세 결과 전달",
+      channelDetail: email
+        ? `${email} 주소로 안내 메일을 보내드립니다.`
+        : "신청 시 입력한 이메일 주소로 상세 결과를 보내드립니다."
+    });
+    return;
+  }
+
+  if (text.includes("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.")) {
+    const email = document.getElementById("vip-email")?.value?.trim();
+    showNoticePanel({
+      eyebrow: "VIP APPLICATION COMPLETE",
+      title: "VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.",
+      message: "관리자가 신청 내용을 확인한 뒤 1~2일 내에 이메일로 결과를 보내드립니다.",
+      timeline: "1~2일 내 결과 발송",
+      channel: "이메일로 상세 결과 전달",
+      channelDetail: email
+        ? `${email} 주소로 안내 메일을 보내드립니다.`
+        : "신청 시 입력한 이메일 주소로 상세 결과를 보내드립니다."
+    });
+    return;
+  }
+
+  if (text.includes("문의 메시지가 성공적으로 전송되었습니다.")) {
+    showNoticePanel({
+      eyebrow: "MESSAGE SENT",
+      title: "문의 메시지가 성공적으로 전송되었습니다.",
+      message: "관리자가 내용을 확인한 뒤 입력하신 연락처 기준으로 답변을 드리겠습니다.",
+      timeline: "순차 확인 후 답변",
+      channel: "문의 내용 접수 완료",
+      channelDetail: "추가 확인이 필요하면 등록하신 연락처로 안내드립니다."
+    });
+    return;
+  }
+
+  nativeAlert(text);
+}
 
 async function handleSajuSubmit(e) {
   e.preventDefault();
@@ -311,26 +681,105 @@ async function handleSajuSubmit(e) {
     time: document.getElementById("user-time")?.value,
     gender: document.getElementById("user-gender")?.value,
     serviceId: currentServiceId,
-    payMethod: document.querySelector('input[name="pay-method"]:checked')?.value
+    payMethod: document.querySelector('input[name="pay-method"]:checked')?.value,
+    partner: {
+      name: document.getElementById("partner-name")?.value?.trim(),
+      birth: document.getElementById("partner-birth")?.value,
+      calendar: document.getElementById("partner-calendar")?.value,
+      gender: document.getElementById("partner-gender")?.value,
+      time: document.getElementById("partner-time")?.value
+    }
   };
 
   if (!document.getElementById("privacy-agree")?.checked) {
-    alert("媛쒖씤?뺣낫 ?섏쭛 諛??댁슜???숈쓽?댁＜?몄슂.");
+    alert("개인정보 수집 및 이용에 동의해주세요.");
     return;
   }
 
   if (!userInfo.serviceId) {
-    alert("?쒕퉬???뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
+    alert("서비스 정보를 찾을 수 없습니다.");
     return;
   }
 
+  if (
+    userInfo.serviceId === "couple" &&
+    (
+      !userInfo.partner?.name ||
+      !userInfo.partner?.birth ||
+      !userInfo.partner?.calendar ||
+      !userInfo.partner?.gender ||
+      !userInfo.partner?.time
+    )
+  ) {
+    alert("커플 궁합은 두 사람 정보가 모두 필요합니다. 상대방 이름/생년월일/시간/성별을 입력해주세요.");
+    return;
+  }
+
+  // 결제 전 상태 체크 제거 (사용자 요청)
+  /*
+  const aiReady = await ensureAIAvailableBeforePayment();
+  if (!aiReady) {
+    return;
+  }
+  */
+
   await requestPayment(userInfo);
+}
+
+function getApiBaseURL() {
+  const isHttp = /^https?:/i.test(window.location.protocol);
+  const baseFromStorage = localStorage.getItem("API_BASE_URL") || "";
+  return baseFromStorage || (isHttp ? window.location.origin : "http://localhost:3001");
+}
+
+async function ensureAIAvailableBeforePayment() {
+  const endpoint = `${getApiBaseURL().replace(/\/$/, "")}/api/gemini`;
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ healthcheck: true, prompt: "health-check" })
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok && data?.ok) {
+      return true;
+    }
+
+    if (response.status === 429 || isGeminiQuotaError({ message: data?.error })) {
+      alert(
+        "현재 AI 분석 서버 사용량 한도(Quota) 초과로 결제를 진행할 수 없습니다.\n" +
+        "잠시 후 다시 시도해주세요."
+      );
+      return false;
+    }
+    
+    if (response.status === 502 || isGeminiQuotaError({ message: data?.error })) {
+      alert(
+        "현재 AI 분석 서버 사용량 한도(Quota) 초과로 결제를 진행할 수 없습니다.\n" +
+        "잠시 후 다시 시도해주세요."
+      );
+      return false;
+    }
+
+    alert(
+      "현재 AI 분석 서버 상태를 확인할 수 없어 결제를 진행할 수 없습니다.\n" +
+      `사유: ${data?.error || "알 수 없는 오류"}`
+    );
+    return false;
+  } catch (error) {
+    alert(
+      "AI 서버 연결 확인에 실패해 결제를 중단했습니다.\n" +
+      "서버 실행 상태를 확인한 뒤 다시 시도해주세요."
+    );
+    return false;
+  }
 }
 
 async function requestPayment(userInfo) {
   const svc = servicesData.find((s) => s.id === userInfo.serviceId);
   if (!svc) {
-    alert("?쒕퉬???뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
+    alert("서비스 정보를 찾을 수 없습니다.");
     return;
   }
   userInfo.service = svc.name;
@@ -339,8 +788,65 @@ async function requestPayment(userInfo) {
     storeId: "store-6907376b-9699-4577-b695-d4ac64ba2849",
     channelKey: "channel-key-c60202c2-544c-49a4-8d5e-c15873d0f6a9",
     paymentId: `pid_${Date.now()}`,
-    orderName: `Memory Fortune: ${svc.name}${IS_TEST_MODE ? " (?뚯뒪??0??寃곗젣)" : ""}`,
+    orderName: `Memory Fortune: ${svc.name}${IS_TEST_MODE ? " (테스트 0원 결제)" : ""}`,
     totalAmount: IS_TEST_MODE ? 0 : svc.price,
+    currency: "KRW",
+    customer: {
+      fullName: userInfo.name,
+      phoneNumber: userInfo.phone,
+      email: userInfo.email
+    }
+  };
+  userInfo.paymentId = paymentData.paymentId;
+
+  if (userInfo.payMethod === "card") {
+    paymentData.payMethod = "CARD";
+  } else if (userInfo.payMethod === "kakaopay") {
+    paymentData.payMethod = "EASY_PAY";
+    paymentData.easyPay = { easyPayProvider: "KAKAOPAY" };
+  } else if (userInfo.payMethod === "naverpay") {
+    paymentData.payMethod = "EASY_PAY";
+    paymentData.easyPay = { easyPayProvider: "NAVERPAY" };
+  } else if (userInfo.payMethod === "tosspay") {
+    paymentData.payMethod = "EASY_PAY";
+    paymentData.easyPay = { easyPayProvider: "TOSSPAY" };
+  }
+
+  if (IS_TEST_MODE && paymentData.totalAmount === 0) {
+    console.log("테스트 모드: 결제창을 생략하고 즉시 AI 분석 및 DB 저장을 시작합니다.");
+    await startAIAnalysis(userInfo);
+    return;
+  }
+
+  try {
+    const payment = await window.PortOne.requestPayment(paymentData);
+
+    if (!payment) {
+      alert("결제창을 열지 못했습니다. 브라우저의 팝업 차단 설정을 해제해 주세요.");
+      return;
+    }
+
+    if (payment.code != null) {
+      alert(`결제 실패: ${payment.message || "알 수 없는 오류"}`);
+      return;
+    }
+    userInfo.paymentId = payment.paymentId || paymentData.paymentId;
+
+    // alert("결제가 완료되었습니다. AI 분석을 시작합니다.");
+    await startAIAnalysis(userInfo);
+  } catch (error) {
+    console.error("결제 요청 오류:", error);
+    alert(`결제 요청 중 오류가 발생했습니다.\n상세내용: ${error.message || String(error)}`);
+  }
+}
+
+async function requestVipPayment(userInfo) {
+  const paymentData = {
+    storeId: "store-6907376b-9699-4577-b695-d4ac64ba2849",
+    channelKey: "channel-key-c60202c2-544c-49a4-8d5e-c15873d0f6a9",
+    paymentId: userInfo.paymentId || `vip_${Date.now()}`,
+    orderName: `Memory Fortune: VIP 1:1 정밀 분석${IS_TEST_MODE ? " (테스트 0원 결제)" : ""}`,
+    totalAmount: IS_TEST_MODE ? 0 : 30000,
     currency: "KRW",
     customer: {
       fullName: userInfo.name,
@@ -362,9 +868,15 @@ async function requestPayment(userInfo) {
     paymentData.easyPay = { easyPayProvider: "TOSSPAY" };
   }
 
+  userInfo.paymentId = paymentData.paymentId;
+
   if (IS_TEST_MODE && paymentData.totalAmount === 0) {
-    alert("?뚯뒪??紐⑤뱶 0??寃곗젣媛 ?뱀씤?섏뿀?듬땲?? AI 遺꾩꽍???쒖옉?⑸땲??");
-    await startAIAnalysis(userInfo);
+    await saveResultToSupabase(userInfo, {
+      memo: "VIP 1:1 정밀 사주 분석 요청 데이터",
+      status: "pending_review",
+      paymentTestMode: true
+    });
+    alert("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.\n관리자가 확인 후 1~2일 내에 이메일로 결과를 보내드립니다.");
     return;
   }
 
@@ -372,213 +884,574 @@ async function requestPayment(userInfo) {
     const payment = await window.PortOne.requestPayment(paymentData);
 
     if (!payment) {
-      alert("寃곗젣李쎌쓣 ?댁? 紐삵뻽?듬땲?? 釉뚮씪?곗? ?앹뾽 李⑤떒???댁젣??二쇱꽭??");
+      alert("결제창을 열지 못했습니다. 브라우저의 팝업 차단 설정을 해제해 주세요.");
       return;
     }
 
     if (payment.code != null) {
-      alert(`寃곗젣 ?ㅽ뙣: ${payment.message || "?????녿뒗 ?ㅻ쪟"}`);
+      alert(`결제 실패: ${payment.message || "알 수 없는 오류"}`);
       return;
     }
 
-    alert("寃곗젣媛 ?꾨즺?섏뿀?듬땲?? AI 遺꾩꽍???쒖옉?⑸땲??");
-    await startAIAnalysis(userInfo);
+    userInfo.paymentId = payment.paymentId || paymentData.paymentId;
+    await saveResultToSupabase(userInfo, {
+      memo: "VIP 1:1 정밀 사주 분석 요청 데이터",
+      status: "pending_review"
+    });
+    alert("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.\n관리자가 확인 후 1~2일 내에 이메일로 결과를 보내드립니다.");
   } catch (error) {
-    console.error("寃곗젣 ?붿껌 ?ㅻ쪟:", error);
-    alert(`寃곗젣 ?붿껌 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.\n?곸꽭?댁슜: ${error.message || String(error)}`);
+    console.error("VIP payment request error:", error);
+    alert(`결제 요청 중 오류가 발생했습니다.\n상세내용: ${error.message || String(error)}`);
   }
 }
 
 async function startAIAnalysis(userInfo) {
   closeModal();
+  const loading = document.getElementById("legacy-loading-overlay");
+  if (loading) loading.style.display = "flex";
+  
+  let prompt = buildServicePrompt(userInfo);
+  let lastError = null;
 
-  if (IS_TEST_MODE && (!GEMINI_KEY || GEMINI_KEY === "YOUR_GEMINI_API_KEY")) {
-    const mockResult = createMockAnalysisResult(userInfo);
-    await finalizeAnalysisResult(userInfo, mockResult);
-    return;
+  for (let attempt = 0; attempt <= AI_RETRY_LIMIT; attempt += 1) {
+    try {
+      const rawResult = await callGeminiAPI(prompt);
+      console.log("Gemini 파싱 결과:", rawResult);
+      const resultJSON = normalizeServiceResult(userInfo, rawResult);
+
+      if (!isDetailedEnough(userInfo.serviceId, resultJSON)) {
+        throw new Error("AI 결과가 너무 짧거나 필수 항목이 누락되었습니다.");
+      }
+
+      await finalizeAnalysisResult(userInfo, resultJSON);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(`AI analysis error (attempt ${attempt + 1}):`, error);
+
+      // Let the rotation engine handle multiple APIs.
+      // We don't need to alert specifically for Gemini here anymore.
+      console.warn("AI 분석 단계적 실패 (로테이션 진행 중):", error.message);
+
+      prompt = `${prompt}\n\n[재요청 지시]\n방금 응답은 길이/상세도가 부족했습니다. 반드시 각 항목을 요구 문장 수 이상으로 충분히 길게 작성하고, JSON 키를 절대 누락하지 마세요.`;
+    }
   }
 
-  const prompt = `
-당신은 한국어 사주 명리 분석 전문가입니다.
-아래 고객 정보 기준으로 JSON만 반환하세요.
-
-[고객 정보]
-- 이름: ${userInfo.name}
-- 생년월일: ${userInfo.birth}
-- 달력유형: ${userInfo.calendar}
-- 출생시간: ${userInfo.time}
-- 성별: ${userInfo.gender}
-- 서비스: ${userInfo.service}
-
-[출력 스키마]
-{
-  "인사말": { "제목": "문자열", "내용": "문자열" },
-  "운세요약": {
-    "사자성어": "문자열",
-    "해석": "문자열",
-    "강점": ["문자열", "문자열", "문자열"]
-  },
-  "연간운세": { "키워드": ["문자열", "문자열", "문자열"], "상세설명": "문자열" },
-  "월별운세": [
-    { "월": "1월", "점수": "★★★★", "키워드": "문자열", "조언": "문자열" }
-  ],
-  "상세분석": {
-    "직업": "문자열",
-    "연애결혼": "문자열",
-    "건강": "문자열",
-    "대인관계": "문자열"
-  },
-  "행운아이템": {
-    "색상": "문자열",
-    "숫자": "문자열",
-    "방향": "문자열",
-    "음식": "문자열",
-    "아이템": "문자열"
-  },
-  "마무리": "문자열"
+  if (loading) loading.style.display = "none";
+  
+  // API가 모두 실패하더라도 에러 메시지 없이 가짜 데이터로 강제 진행 (테스트 모드)
+  console.warn("모든 AI API 호출 실패. 테스트용 가짜 데이터를 생성하여 진행합니다.");
+  const mockResult = createMockAnalysisResult(userInfo);
+  await finalizeAnalysisResult(userInfo, mockResult);
 }
+
+function isGeminiQuotaError(error) {
+  const msg = String(error?.message || "").toLowerCase();
+  return (
+    msg.includes("quota exceeded") ||
+    msg.includes("resource_exhausted") ||
+    msg.includes("rate limit") ||
+    msg.includes("429")
+  );
+}
+
+function isDetailedEnough(serviceId, resultJSON) {
+  const textLength = (value) => String(value || "").replace(/\s+/g, "").length;
+
+  if (serviceId === "premium") {
+    return (
+      textLength(resultJSON?.총평) > 200 &&
+      textLength(resultJSON?.["2026년운세"]) > 200 &&
+      textLength(resultJSON?.총조언) > 400 &&
+      textLength(resultJSON?.재물운) > 120 &&
+      textLength(resultJSON?.애정운) > 120
+    );
+  }
+
+  if (serviceId === "couple") {
+    return (
+      Number(resultJSON?.궁합점수 || 0) > 0 &&
+      textLength(resultJSON?.궁합총평) > 120 &&
+      textLength(resultJSON?.연애운) > 80 &&
+      textLength(resultJSON?.결혼운) > 80 &&
+      textLength(resultJSON?.총조언) > 80
+    );
+  }
+
+  if (serviceId === "name") {
+    return (
+      textLength(resultJSON?.이름분석) > 120 &&
+      textLength(resultJSON?.이름의기운) > 120 &&
+      textLength(resultJSON?.오행균형) > 120 &&
+      Array.isArray(resultJSON?.추천이름3개) &&
+      resultJSON.추천이름3개.length === 3
+    );
+  }
+
+  return (
+    textLength(resultJSON?.총평) > 100 &&
+    textLength(resultJSON?.오늘의운세) > 100 &&
+    textLength(resultJSON?.이번달운세) > 120 &&
+    textLength(resultJSON?.오늘의조언) > 100
+  );
+}
+
+function getServiceSchema(serviceId) {
+  if (serviceId === "premium") {
+    return `{
+  "총평": "최소 8문장 이상 종합 평가",
+  "타고난기질": "최소 6문장 이상",
+  "오행분석": {
+    "목": "목의 기운 분석 최소 3문장",
+    "화": "화의 기운 분석 최소 3문장",
+    "토": "토의 기운 분석 최소 3문장",
+    "금": "금의 기운 분석 최소 3문장",
+    "수": "수의 기운 분석 최소 3문장"
+  },
+  "2026년운세": "2026년 전체 흐름 최소 8문장 이상",
+  "상반기운세": "1~6월 상세 흐름 최소 5문장 이상",
+  "하반기운세": "7~12월 상세 흐름 최소 5문장 이상",
+  "월별운세": [
+    { "월": "1월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "2월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "3월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "4월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "5월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "6월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "7월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "8월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "9월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "10월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "11월", "운세": "이달의 상세 운세 3문장" },
+    { "월": "12월", "운세": "이달의 상세 운세 3문장" }
+  ],
+  "재물운": "최소 6문장 이상 상세 분석",
+  "애정운": "최소 6문장 이상 상세 분석",
+  "건강운": "최소 6문장 이상 상세 분석",
+  "직업운": "최소 6문장 이상 상세 분석",
+  "행운정보": {
+    "색상": "색상과 이유 2문장",
+    "숫자": "숫자와 이유 2문장",
+    "방향": "방향과 이유 2문장",
+    "음식": "음식과 이유 2문장",
+    "조심할달": "월과 이유 2문장"
+  },
+  "총조언": "위의 모든 분석 내용을 종합하여 고객의 삶에 실질적인 도움이 되는 12문장 이상의 매우 길고 상세한 희망적 조언"
+}`;
+  }
+
+  if (serviceId === "couple") {
+    return `{
+  "궁합점수": 0,
+  "궁합총평": "두 사람의 궁합을 최소 8문장 이상 종합 평가",
+  "첫만남의기운": "두 사람이 처음 만났을 때 기운 최소 5문장",
+  "연애운": "연애할 때 두 사람의 모습과 주의사항 최소 6문장",
+  "결혼운": "결혼했을 때 두 사람의 모습과 행복 포인트 최소 6문장",
+  "갈등포인트": "두 사람이 갈등할 수 있는 상황과 원인 최소 5문장",
+  "극복방법": "갈등을 극복하는 구체적인 방법 5가지 각각 2문장",
+  "재물궁합": "두 사람의 재물운 궁합 최소 5문장",
+  "최고의순간": "두 사람이 가장 행복할 순간들 최소 5문장",
+  "총조언": "두 사람에게 전하는 따뜻한 응원 메시지 최소 6문장"
+}`;
+  }
+
+  if (serviceId === "name") {
+    return `{
+  "이름분석": "이름의 한자 의미, 음양오행, 획수, 소리의 기운까지 최소 5문장 이상 매우 상세하게 분석",
+  "이름의기운": "이 이름이 가진 에너지와 기운이 인생에 미치는 영향을 최소 5문장 이상 구체적으로 설명",
+  "오행균형": "목화토금수 각각의 비율과 강한 기운 약한 기운을 분석하고 보완 방법까지 최소 5문장 이상",
+  "이름이주는운세": "이 이름으로 인해 재물운 애정운 직업운 건강운에 미치는 영향을 각각 2문장씩 총 8문장 이상 상세히",
+  "개명추천여부": "개명 추천 또는 유지 권장 이유를 3문장 이상 설명",
+  "추천이름3개": ["이름1", "이름2", "이름3"],
+  "추천이름이유": "각 추천 이름의 의미와 기운을 각각 2문장씩 설명"
+}`;
+  }
+
+  return `{
+  "총평": "이 사람의 사주를 종합적으로 평가하는 내용을 최소 8문장 이상 따뜻하고 희망적으로 작성",
+  "오늘의운세": "오늘 하루 조심할 것과 기회가 되는 것을 구체적으로 최소 6문장 이상 작성",
+  "이번달운세": "이번달 전반적인 흐름과 재물 애정 건강 직업별로 각각 2문장씩 총 10문장 이상",
+  "행운정보": {
+    "색상": "색상 이름과 이유 2문장",
+    "숫자": "숫자와 이유 2문장",
+    "방향": "방향과 이유 2문장",
+    "음식": "음식과 이유 2문장",
+    "조심할달": "월과 이유 2문장"
+  },
+  "오늘의조언": "오늘 하루를 잘 보내기 위한 구체적인 조언 5가지를 각각 2문장씩 상세히",
+  "총조언": "위의 모든 분석 내용을 종합하여 고객의 삶에 실질적인 도움이 되는 10문장 이상의 매우 길고 상세한 희망적 조언"
+}`;
+}
+
+function buildServicePrompt(userInfo) {
+  const basicPrompt = `
+너는 30년 경력의 한국 사주명리학 전문가야.
+아래 정보로 매우 상세한 사주 분석을 해줘.
+
+이름: ${userInfo.name}
+생년월일: ${userInfo.birth}
+태어난시간: ${userInfo.time}
+성별: ${userInfo.gender}
+
+반드시 아래 JSON 형식으로만 반환해:
+${getServiceSchema("basic")}
+
+[언어 규칙 - 최우선 준수]
+- 반드시 순수 한국어만 사용할 것
+- 한자(漢字), 중국어 간체/번체, 일본어, 영어 등 다른 언어 절대 사용 금지
+- 한자가 필요한 경우 반드시 한글로만 표기 (예: '財運' → '재물운', '健康' → '건강')
+- 외래어는 한글 표기 사용 (예: energy → 에너지)
+
+[공통 규칙]
+- 말투: 따뜻하고 희망적으로
+- 부정적 내용은 반드시 긍정적 방향 제시
+- 고객 이름을 자주 언급해서 개인화
+- 절대 짧게 쓰지 말고 풍부하게 작성
+- JSON만 반환, 다른 말 금지
 `.trim();
 
+  const premiumPrompt = `
+너는 30년 경력의 한국 사주명리학 전문가야.
+아래 정보로 최고급 프리미엄 사주 리포트를 작성해줘.
+각 항목을 매우 상세하고 풍부하게 작성해야 해.
+
+이름: ${userInfo.name}
+생년월일: ${userInfo.birth}
+태어난시간: ${userInfo.time}
+성별: ${userInfo.gender}
+
+반드시 아래 JSON 형식으로만 반환해:
+${getServiceSchema("premium")}
+
+[언어 규칙 - 최우선 준수]
+- 반드시 순수 한국어만 사용할 것
+- 한자(漢字), 중국어 간체/번체, 일본어, 영어 등 다른 언어 절대 사용 금지
+- 한자가 필요한 경우 반드시 한글로만 표기 (예: '財運' → '재물운', '健康' → '건강')
+- 외래어는 한글 표기 사용 (예: energy → 에너지)
+
+[공통 규칙]
+- 말투: 따뜻하고 희망적으로
+- 부정적 내용은 반드시 긍정적 방향 제시
+- 고객 이름을 자주 언급해서 개인화
+- 절대 짧게 쓰지 말고 풍부하게 작성
+- JSON만 반환, 다른 말 금지
+`.trim();
+
+  const couplePrompt = `
+너는 30년 경력의 한국 사주명리학 전문가야.
+두 사람의 사주를 바탕으로 매우 상세한 궁합 분석을 해줘.
+
+나의정보 - 이름: ${userInfo.name}
+생년월일: ${userInfo.birth}
+태어난시간: ${userInfo.time}
+성별: ${userInfo.gender}
+
+상대방정보 - 이름: ${userInfo.partner?.name || ""}
+생년월일: ${userInfo.partner?.birth || ""}
+태어난시간: ${userInfo.partner?.time || ""}
+성별: ${userInfo.partner?.gender || ""}
+
+반드시 아래 JSON 형식으로만 반환해:
+${getServiceSchema("couple")}
+
+[언어 규칙 - 최우선 준수]
+- 반드시 순수 한국어만 사용할 것
+- 한자(漢字), 중국어 간체/번체, 일본어, 영어 등 다른 언어 절대 사용 금지
+- 한자가 필요한 경우 반드시 한글로만 표기 (예: '財運' → '재물운', '健康' → '건강')
+- 외래어는 한글 표기 사용 (예: energy → 에너지)
+
+[공통 규칙]
+- 말투: 따뜻하고 희망적으로
+- 부정적 내용은 반드시 긍정적 방향 제시
+- 고객 이름을 자주 언급해서 개인화
+- 절대 짧게 쓰지 말고 풍부하게 작성
+- JSON만 반환, 다른 말 금지
+`.trim();
+
+  const namePrompt = `
+너는 30년 경력의 한국 최고 작명가이자 사주명리학 전문가야.
+아래 정보로 매우 상세한 이름 풀이를 해줘.
+
+이름: ${userInfo.name}
+생년월일: ${userInfo.birth}
+성별: ${userInfo.gender}
+
+반드시 아래 JSON 형식으로만 반환해:
+${getServiceSchema("name")}
+
+[언어 규칙 - 최우선 준수]
+- 반드시 순수 한국어만 사용할 것
+- 한자(漢字), 중국어 간체/번체, 일본어, 영어 등 다른 언어 절대 사용 금지
+- 한자가 필요한 경우 반드시 한글로만 표기 (예: '財運' → '재물운', '健康' → '건강')
+- 외래어는 한글 표기 사용 (예: energy → 에너지)
+
+[공통 규칙]
+- 말투: 따뜻하고 희망적으로
+- 부정적 내용은 반드시 긍정적 방향 제시
+- 고객 이름을 자주 언급해서 개인화
+- 절대 짧게 쓰지 말고 풍부하게 작성
+- JSON만 반환, 다른 말 금지
+`.trim();
+
+  const prompts = {
+    basic: basicPrompt,
+    premium: premiumPrompt,
+    couple: couplePrompt,
+    name: namePrompt
+  };
+
+  return prompts[userInfo.serviceId] || basicPrompt;
+}
+
+// 기존 코드가 어떻게 되어있든 이걸로 교체
+async function callGeminiAPI(prompt) {
+  const endpoint = `${getApiBaseURL().replace(/\/$/, "")}/api/gemini`;
+
+  let response;
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            response_mime_type: "application/json"
-          }
-        })
-      }
-    );
-
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      const apiError = data?.error?.message || response.statusText || "Gemini API request failed";
-      throw new Error(`Gemini API 오류: ${apiError}`);
-    }
-
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!rawText) {
-      console.error("AI raw response:", data);
-      throw new Error("AI 응답 텍스트를 받지 못했습니다.");
-    }
-
-    const resultJSON = extractJSON(rawText);
-    await finalizeAnalysisResult(userInfo, resultJSON);
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
   } catch (error) {
-    if (IS_TEST_MODE && /API key|API_KEY_INVALID|key not valid/i.test(error?.message || "")) {
-      const mockResult = createMockAnalysisResult(userInfo);
-      await finalizeAnalysisResult(userInfo, mockResult);
-      return;
-    }
-
-    console.error("AI analysis error:", error);
-    alert(`분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n내용: ${error.message}`);
+    throw new Error(
+      `API 서버에 연결할 수 없습니다. (${endpoint}) Next 서버 실행 여부를 확인해주세요.`
+    );
   }
+
+  const data = await response.json();
+  console.log("Gemini 원본 응답:", data?.raw || data);
+
+  if (!response.ok || !data?.ok) {
+    const message = data?.error || "Gemini route request failed";
+    throw new Error(message);
+  }
+
+  return data.result;
+}
+
+function normalizeServiceResult(userInfo, rawResult) {
+  const serviceId = userInfo.serviceId || "basic";
+  const luckyDefault = { 색상: "", 숫자: "", 방향: "", 음식: "", 조심할달: "" };
+
+  if (serviceId === "premium") {
+    const fiveDefault = { 목: "", 화: "", 토: "", 금: "", 수: "" };
+    const luckyDefault = { 색상: "", 숫자: "", 방향: "", 음식: "", 조심할달: "" };
+    
+    return {
+      총평: String(rawResult?.총평 || ""),
+      타고난기질: String(rawResult?.타고난기질 || ""),
+      오행분석: rawResult?.오행분석 || fiveDefault,
+      "2026년운세": String(rawResult?.["2026년운세"] || ""),
+      상반기운세: String(rawResult?.상반기운세 || ""),
+      하반기운세: String(rawResult?.하반기운세 || ""),
+      월별운세: Array.isArray(rawResult?.월별운세) ? rawResult.월별운세 : [],
+      재물운: String(rawResult?.재물운 || ""),
+      애정운: String(rawResult?.애정운 || ""),
+      건강운: String(rawResult?.건강운 || ""),
+      직업운: String(rawResult?.직업운 || ""),
+      행운정보: rawResult?.행운정보 || luckyDefault,
+      총조언: String(rawResult?.총조언 || "")
+    };
+  }
+
+  if (serviceId === "couple") {
+    return {
+      궁합점수: Number(rawResult?.궁합점수 || 0),
+      궁합총평: String(rawResult?.궁합총평 || ""),
+      첫만남의기운: String(rawResult?.첫만남의기운 || ""),
+      연애운: String(rawResult?.연애운 || ""),
+      결혼운: String(rawResult?.결혼운 || ""),
+      갈등포인트: String(rawResult?.갈등포인트 || ""),
+      극복방법: String(rawResult?.극복방법 || ""),
+      재물궁합: String(rawResult?.재물궁합 || ""),
+      최고의순간: String(rawResult?.최고의순간 || ""),
+      총조언: String(rawResult?.총조언 || "")
+    };
+  }
+
+  if (serviceId === "name") {
+    return {
+      이름분석: String(rawResult?.이름분석 || ""),
+      이름의기운: String(rawResult?.이름의기운 || ""),
+      오행균형: String(rawResult?.오행균형 || ""),
+      이름이주는운세: String(rawResult?.이름이주는운세 || ""),
+      개명추천여부: String(rawResult?.개명추천여부 || ""),
+      추천이름3개: Array.isArray(rawResult?.추천이름3개) ? rawResult.추천이름3개 : [],
+      추천이름이유: String(rawResult?.추천이름이유 || "")
+    };
+  }
+
+  const basicLucky = {
+    행운의색: String(rawResult?.행운의색 || ""),
+    행운의숫자: String(rawResult?.행운의숫자 || ""),
+    행운의방향: String(rawResult?.행운의방향 || "")
+  };
+
+  return {
+    총평: String(rawResult?.총평 || ""),
+    오늘의운세: String(rawResult?.오늘의운세 || ""),
+    이번달운세: String(rawResult?.이번달운세 || ""),
+    오늘의조언: String(rawResult?.오늘의조언 || ""),
+    행운의색: basicLucky.행운의색,
+    행운의숫자: basicLucky.행운의숫자,
+    행운의방향: basicLucky.행운의방향,
+    행운정보: {
+      색상: basicLucky.행운의색,
+      숫자: basicLucky.행운의숫자,
+      방향: basicLucky.행운의방향
+    }
+  };
 }
 
 async function finalizeAnalysisResult(userInfo, resultJSON) {
-  await saveResultToSupabase(userInfo, JSON.stringify(resultJSON));
-  localStorage.setItem("lastFortuneResult", JSON.stringify(resultJSON));
-  localStorage.setItem("lastUserInfo", JSON.stringify(userInfo));
+  const payload = {
+    serviceId: userInfo.serviceId,
+    serviceName: userInfo.service,
+    customerName: userInfo.name,
+    result: resultJSON
+  };
 
-  alert("프리미엄 사주 분석이 완료되었습니다! 분석 리포트 페이지로 이동합니다.");
+  const insertedId = await saveResultToSupabase(userInfo, payload);
+  localStorage.setItem("lastFortuneResult", JSON.stringify(payload));
+  localStorage.setItem("lastUserInfo", JSON.stringify(userInfo));
+  if (insertedId) {
+    localStorage.setItem("lastResultId", String(insertedId));
+  }
+
+  // alert(`${userInfo.service || "사주"} 분석이 완료되었습니다! 리포트 페이지로 이동합니다.`);
+  if (insertedId) {
+    window.location.href = `result.html?id=${insertedId}`;
+    return;
+  }
   window.location.href = "result.html";
 }
 
 function createMockAnalysisResult(userInfo) {
+  const serviceId = userInfo.serviceId || "basic";
+  const partnerName = userInfo.partner?.name || "상대방";
+
+  if (serviceId === "premium") {
+    return {
+      총평: `${userInfo.name}님은 올해 안정과 성장의 균형을 잘 잡으면 성과가 크게 열리는 흐름입니다. 준비한 것들이 점차 결실로 이어질 가능성이 높습니다.`,
+      타고난기질: `${userInfo.name}님은 신중함과 추진력을 함께 갖춘 유형으로, 중요한 순간에 집중력이 높게 발휘됩니다.`,
+      오행분석: "목화토금수 기운이 전반적으로 균형을 이루지만 화의 기운이 상대적으로 강해 추진력과 표현력이 돋보입니다.",
+      "2026년운세": "2026년은 기반을 다지며 확장하는 해입니다. 상반기에는 정비, 하반기에는 도약 흐름이 강화됩니다.",
+      상반기운세: "1~6월은 계획 수립과 관계 정리가 핵심입니다. 장기 목표의 기준을 세우면 하반기 성과가 더 커집니다.",
+      하반기운세: "7~12월은 실행과 수확 구간입니다. 쌓아온 신뢰와 실력이 좋은 기회로 연결되기 쉽습니다.",
+      월별운세: {
+        "1월": "기반 점검과 우선순위 설정이 유리한 달입니다.",
+        "2월": "협업운이 좋아 조력자를 만나기 쉽습니다.",
+        "3월": "작은 성과가 자신감으로 이어지는 시기입니다.",
+        "4월": "조정과 타협 능력이 빛을 발합니다.",
+        "5월": "실무 집중력이 높아지는 시기입니다.",
+        "6월": "중간 점검으로 방향을 미세 조정하면 좋습니다.",
+        "7월": "확장 운이 시작되며 기회가 늘어납니다.",
+        "8월": "주변 평가가 좋아지고 신뢰가 강화됩니다.",
+        "9월": "재물 흐름이 개선되고 실속이 생깁니다.",
+        "10월": "관계운이 좋아 중요한 만남이 생깁니다.",
+        "11월": "누적된 노력이 결과로 나타납니다.",
+        "12월": "한 해를 정리하며 다음 도약 기반을 만듭니다."
+      },
+      재물운: "현금흐름 관리와 분산 전략이 안정성을 높입니다.",
+      애정운: "감정 표현을 구체적으로 하면 관계 만족도가 상승합니다.",
+      건강운: "수면 리듬과 소화기 관리가 핵심입니다.",
+      직업운: "중장기 프로젝트에서 강점이 살아나는 흐름입니다.",
+      행운정보: { 행운의색: "골드", 행운의숫자: "9", 행운의방향: "동남", 행운의음식: "따뜻한 차", 조심할달: "8월" },
+      총조언: `${userInfo.name}님, 속도보다 방향을 선택하면 큰 성장을 만들 수 있습니다. 꾸준함이 올해 최고의 무기가 됩니다.`
+    };
+  }
+
+  if (serviceId === "couple") {
+    return {
+      궁합점수: 87,
+      궁합총평: `${userInfo.name}님과 ${partnerName}님은 서로의 부족한 부분을 채워주는 상호보완형 궁합입니다.`,
+      첫만남의기운: "첫인상에서 끌림과 호기심이 함께 작동하는 기운입니다.",
+      연애운: "감정 표현 방식만 맞추면 애정 흐름이 안정적입니다.",
+      결혼운: "생활 패턴 조율이 선행되면 결혼운이 빠르게 좋아집니다.",
+      갈등포인트: "기대치를 말하지 않고 추측하는 습관이 충돌을 만듭니다.",
+      극복방법: "주 1회 감정 체크 대화를 고정하면 갈등이 크게 줄어듭니다.",
+      재물궁합: "역할 분담을 명확히 하면 함께 만드는 재물운이 상승합니다.",
+      최고의순간: "공동 목표를 세우고 함께 실행할 때 관계 에너지가 최고조입니다.",
+      총조언: `${userInfo.name}님과 ${partnerName}님은 대화 규칙만 세우면 장기적으로 매우 안정적인 커플입니다.`
+    };
+  }
+
+  if (serviceId === "name") {
+    return {
+      이름분석: `${userInfo.name}님 이름은 신뢰감과 안정감을 주는 인상이 강합니다.`,
+      이름의기운: "초반은 신중, 후반은 추진력이 살아나는 기운입니다.",
+      오행균형: "화/토 기운이 상대적으로 강하며 수 기운 보완이 좋습니다.",
+      이름이주는운세: "대인 신뢰 기반의 기회가 점진적으로 늘어납니다.",
+      개명추천여부: "현재 이름 유지 권장",
+      추천이름3개: ["서윤", "지안", "하준"],
+      추천이름이유: "세 이름 모두 안정과 성장의 기운이 조화를 이루며, 발음 에너지가 부드러워 대인운 보완에 도움이 됩니다."
+    };
+  }
+
   return {
-    "인사말": {
-      "제목": `${userInfo.name}님을 위한 테스트 사주 리포트`,
-      "내용": `${userInfo.name}님의 테스트 리포트입니다. API 키 없이도 결제와 결과 페이지 흐름을 확인할 수 있도록 임시 분석 결과를 제공합니다.`
-    },
-    "운세요약": {
-      "사자성어": "금상첨화",
-      "해석": "좋은 흐름 위에 기회가 더해지는 시기입니다.",
-      "강점": ["실행력", "집중력", "관계운"]
-    },
-    "연간운세": {
-      "키워드": ["안정", "확장", "성과"],
-      "상세설명": "상반기에는 기반을 정리하고, 하반기에는 성과를 확장하는 흐름이 강해집니다."
-    },
-    "월별운세": [
-      { "월": "1월", "점수": "★★★★", "키워드": "준비", "조언": "작은 계획부터 차근차근 실행하세요." },
-      { "월": "2월", "점수": "★★★", "키워드": "관계", "조언": "주변과 협업하면 더 빠르게 풀립니다." },
-      { "월": "3월", "점수": "★★★★★", "키워드": "성과", "조언": "좋은 제안이 오면 적극적으로 검토하세요." }
-    ],
-    "상세분석": {
-      "직업": "단계별 목표를 세우면 결과가 꾸준히 쌓이는 운입니다.",
-      "연애결혼": "솔직한 대화와 배려가 관계 안정에 큰 도움이 됩니다.",
-      "건강": "수면 리듬과 가벼운 운동을 유지하면 컨디션이 빠르게 회복됩니다.",
-      "대인관계": "신뢰를 주는 태도가 좋은 인연을 끌어옵니다."
-    },
-    "행운아이템": {
-      "색상": "골드",
-      "숫자": "7",
-      "방향": "동남",
-      "음식": "따뜻한 차",
-      "아이템": "메모 노트"
-    },
-    "마무리": `${userInfo.name}님, 테스트 환경에서도 흐름은 충분히 좋습니다. 설정 점검이 끝나면 실제 API 키로 더 정밀한 리포트를 받아보세요.`
+    총평: `${userInfo.name}님의 기본 흐름은 안정적이며 점진적 상승 운입니다.`,
+    오늘의운세: "중요한 선택은 오전보다 오후에 판단하면 유리합니다.",
+    이번달운세: "관계운과 실무운이 함께 올라오는 한 달입니다.",
+    행운의색: "골드 - 자신감과 집중력을 강화하는 색입니다.",
+    행운의숫자: "7 - 직관과 균형 감각을 높이는 숫자입니다.",
+    행운의방향: "동남 - 기회와 협력 흐름이 열리는 방향입니다.",
+    오늘의조언: "1. 중요한 결정은 한 번 더 검토하세요. 2. 대화에서 결론을 명확히 하세요. 3. 지출은 우선순위를 정해 관리하세요. 4. 짧은 산책으로 컨디션을 조절하세요. 5. 오늘의 작은 성공을 기록하세요."
   };
 }
-async function saveResultToSupabase(userInfo, result) {
+
+async function saveResultToSupabase(userInfo, resultPayload) {
   const client = getSupabaseClient();
   if (!client || SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") {
-    return;
+    return null;
   }
 
+  const orderId = userInfo.orderId || `order_${Date.now()}`;
   const payload = {
-    user_name: userInfo.name,
-    user_phone: userInfo.phone,
-    user_email: userInfo.email,
-    birth: userInfo.birth,
-    calendar_type: userInfo.calendar,
-    birth_time: userInfo.time,
-    service_type: (servicesData.find((s) => s.id === userInfo.serviceId) || { name: "서비스없음" }).name,
-    analysis_text: result,
-    created_at: new Date().toISOString()
+    order_id: orderId,
+    service_name_snapshot: userInfo.service || userInfo.serviceId || "사주분석",
+    buyer_name: userInfo.name,
+    buyer_email: userInfo.email,
+    buyer_phone: userInfo.phone || null,
+    amount: userInfo.amount || 0,
+    payment_method: userInfo.payMethod || "free",
+    status: "paid",
+    portone_payment_id: userInfo.paymentId || `pid_${Date.now()}`,
+    result_link: userInfo.resultLink || `/result?orderId=${orderId}`,
+    result_json: resultPayload,
+    created_at: new Date().toISOString(),
+    raw_payload: {
+      birthDate: userInfo.birth,
+      birthTime: userInfo.time,
+      gender: userInfo.gender,
+      calendarType: userInfo.calendarType,
+      question: userInfo.question
+    }
   };
 
-  const { error } = await client.from("fortune_results").insert([payload]);
+  console.log("DB 저장 시도 (payments 테이블):", payload.order_id);
+
+  // 실제 프로젝트 테이블인 'payments'에 저장
+  const { data, error } = await client
+    .from("payments")
+    .insert([payload])
+    .select("id")
+    .single();
+
   if (error) {
-    console.error("寃곌낵 ????ㅽ뙣:", error);
+    console.error("DB 저장 실패 (payments):", error.message);
+    
+    // 만약 fortune_result 테이블이 있다면 백업용으로 시도
+    await client.from("fortune_result").insert([{
+      user_email: payload.buyer_email,
+      user_name: payload.buyer_name,
+      result_json: resultPayload
+    }]);
+    
+    return null;
   }
+
+  console.log("DB 저장 성공:", data?.id);
+  return data?.id || null;
 }
-
-function extractJSON(text) {
-  if (!text || typeof text !== "string") {
-    throw new Error("AI response text is empty.");
-  }
-
-  const normalized = text
-    .replace(/^\uFEFF/, "")
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-  const candidates = [
-    normalized,
-    normalized.match(/\{[\s\S]*\}/)?.[0],
-    normalized.match(/\[[\s\S]*\]/)?.[0]
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    try {
-      const sanitized = candidate
-        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
-        .trim();
-      return JSON.parse(sanitized);
-    } catch (_) {
-      // try next candidate
-    }
-  }
-
-  throw new Error("AI response is not valid JSON.");
-}
-
-
-

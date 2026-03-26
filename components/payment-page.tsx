@@ -132,6 +132,8 @@ export function PaymentPage({ initialServiceSlug }: PaymentPageProps) {
         const responseData = portoneResponse as any;
         if (responseData?.code) throw new Error(responseData.message ?? "결제가 취소되었거나 실패했습니다.");
 
+        setIsLoadingAnalysis(true);
+
         await fetch("/api/payments/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -143,6 +145,7 @@ export function PaymentPage({ initialServiceSlug }: PaymentPageProps) {
           })
         });
       } else {
+        setIsLoadingAnalysis(true);
         await fetch("/api/payments/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -154,10 +157,6 @@ export function PaymentPage({ initialServiceSlug }: PaymentPageProps) {
         });
       }
       setIsSubmitting(false);
-
-      if (hasPortOneKeys) {
-        setIsLoadingAnalysis(true);
-      }
       
       startTransition(() => {
         router.push(payload.order.resultLink ?? buildResultQuery(form));
@@ -318,9 +317,32 @@ export function PaymentPage({ initialServiceSlug }: PaymentPageProps) {
         <div className="loading-overlay">
           <div className="loading-content">
             <div className="spinner-premium"></div>
-            <h3>AI가 사주를 분석하고 있습니다...</h3>
-            <p>잠시만 기다려 주세요. 당신의 운명을 별에게 묻는 중입니다.</p>
+            <h2 className="text-grad">운명의 지도를 열고 있습니다...</h2>
+            <p>결제가 승인되었습니다. 잠시 후 분석 리포트로 이동합니다.</p>
           </div>
+          <style jsx>{`
+            .loading-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.9);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 1000;
+              backdrop-filter: blur(10px);
+            }
+            .spinner-premium {
+              width: 60px;
+              height: 60px;
+              border: 3px solid rgba(212, 175, 55, 0.1);
+              border-top: 3px solid var(--gold);
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 20px;
+            }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .loading-content { text-align: center; }
+          `}</style>
         </div>
       )}
     </main>

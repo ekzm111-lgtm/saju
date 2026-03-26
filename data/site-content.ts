@@ -4,7 +4,8 @@ export type ServiceIconName =
   | "wealth"
   | "time"
   | "shield"
-  | "spark";
+  | "spark"
+  | "07";
 
 export type ServiceDefinition = {
   slug: string;

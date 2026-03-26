@@ -31,6 +31,7 @@ export function LandingPage() {
           <a href="#examples">이용방법</a>
           <a href="#reviews">고객후기</a>
           <a href="#faq">문의하기</a>
+          <Link href="/history" style={{ marginLeft: '15px', color: 'var(--gold)', fontSize: '0.9rem', opacity: 0.8 }}>나의 리포트</Link>
         </nav>
         <Link href="/payment" className="btn-cta">
           지금 시작하기
