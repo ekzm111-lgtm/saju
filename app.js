@@ -89,25 +89,31 @@ function initMobileMenu() {
   const nav = document.querySelector(".nav");
   if (!toggleBtn || !nav) return;
 
-  toggleBtn.addEventListener("click", () => {
-    nav.classList.toggle("active");
+  const setMenuState = (isOpen) => {
+    nav.classList.toggle("active", isOpen);
     const icon = toggleBtn.querySelector("i");
     if (icon) {
-      icon.classList.toggle("fa-bars");
-      icon.classList.toggle("fa-xmark");
+      icon.classList.toggle("fa-bars", !isOpen);
+      icon.classList.toggle("fa-xmark", isOpen);
     }
+  };
+
+  toggleBtn.addEventListener("click", () => {
+    setMenuState(!nav.classList.contains("active"));
   });
 
   // 메뉴 링크 클릭 시 메뉴 닫기
   nav.querySelectorAll("a").forEach(link => {
     link.addEventListener("click", () => {
-      nav.classList.remove("active");
-      const icon = toggleBtn.querySelector("i");
-      if (icon) {
-        icon.classList.add("fa-bars");
-        icon.classList.remove("fa-xmark");
-      }
+      setMenuState(false);
     });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!nav.classList.contains("active")) return;
+    const target = event.target;
+    if (nav.contains(target) || toggleBtn.contains(target)) return;
+    setMenuState(false);
   });
 }
 
@@ -994,7 +1000,7 @@ async function startAIAnalysis(userInfo) {
     try {
       const rawResult = await callGeminiAPI(prompt);
       console.log("Gemini 파싱 결과:", rawResult);
-      const resultJSON = normalizeServiceResult(userInfo, rawResult);
+      const resultJSON = normalizeServiceResultSafe(userInfo, rawResult);
 
       if (!isDetailedEnough(userInfo.serviceId, resultJSON)) {
         throw new Error("AI 결과가 너무 짧거나 필수 항목이 누락되었습니다.");
@@ -1048,7 +1054,7 @@ async function startAIAnalysis(userInfo) {
     const rawResult = await callGeminiAPI(buildSearchAidedPrompt(userInfo, prompt));
     console.log("Search-aided analysis result:", rawResult);
 
-    const resultJSON = normalizeServiceResult(userInfo, rawResult);
+    const resultJSON = normalizeServiceResultSafe(userInfo, rawResult);
     if (!isDetailedEnough(userInfo.serviceId, resultJSON)) {
       throw new Error("검색 보조 분석 결과가 충분히 상세하지 않습니다.");
     }
@@ -1543,6 +1549,112 @@ async function finalizeAnalysisResult(userInfo, resultJSON) {
     return;
   }
   window.location.href = "result.html";
+}
+
+function normalizeServiceResultSafe(userInfo, rawResult) {
+  const serviceId = userInfo.serviceId || "basic";
+  const source = rawResult && typeof rawResult === "object" ? rawResult : {};
+
+  const pick = (...keys) => {
+    for (const key of keys) {
+      if (key in source && source[key] != null && source[key] !== "") {
+        return source[key];
+      }
+    }
+    return "";
+  };
+
+  const asText = (...keys) => {
+    const value = pick(...keys);
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+        .filter(Boolean)
+        .join("\n");
+    }
+    if (value && typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value || "");
+  };
+
+  const luckySource =
+    pick("행운정보", "행운 정보", "행운", "luck") ||
+    {
+      색상: pick("행운색상", "행운 색상", "행운의색", "행운색"),
+      숫자: pick("행운숫자", "행운 숫자", "행운의숫자"),
+      방향: pick("행운방향", "행운 방향", "행운의방향"),
+      음식: pick("행운음식", "행운 음식", "행운의음식"),
+      조심할달: pick("조심할달", "조심할 날", "주의할점", "주의사항")
+    };
+
+  const luckyInfo = {
+    색상: String(luckySource?.색상 || luckySource?.행운의색 || luckySource?.color || ""),
+    숫자: String(luckySource?.숫자 || luckySource?.행운의숫자 || luckySource?.number || ""),
+    방향: String(luckySource?.방향 || luckySource?.행운의방향 || luckySource?.direction || ""),
+    음식: String(luckySource?.음식 || luckySource?.행운의음식 || ""),
+    조심할달: String(luckySource?.조심할달 || luckySource?.조심할날 || luckySource?.주의사항 || "")
+  };
+
+  if (serviceId === "premium") {
+    const five = pick("오행분석", "오행 분석", "fiveElements");
+    const monthFortunes = pick("월별운세", "월별 운세", "monthlyFortune");
+    return {
+      총평: asText("총평", "summary"),
+      타고난기질: asText("타고난기질", "타고난 기질"),
+      오행분석: five && typeof five === "object" ? five : { 목: "", 화: "", 토: "", 금: "", 수: "" },
+      "2026년운세": asText("2026년운세", "2026년 운세", "올해운세", "연간운세"),
+      상반기운세: asText("상반기운세", "상반기 운세"),
+      하반기운세: asText("하반기운세", "하반기 운세"),
+      월별운세: Array.isArray(monthFortunes) ? monthFortunes : [],
+      재물운: asText("재물운", "금전운"),
+      애정운: asText("애정운", "연애운"),
+      건강운: asText("건강운"),
+      직업운: asText("직업운", "사업운", "일운"),
+      행운정보: luckyInfo,
+      총조언: asText("총조언", "총 조언", "조언", "마무리조언")
+    };
+  }
+
+  if (serviceId === "couple") {
+    const recommendedScore = pick("궁합점수", "궁합 점수", "score");
+    return {
+      궁합점수: Number(recommendedScore || 0),
+      궁합총평: asText("궁합총평", "궁합 총평"),
+      처음만난기운: asText("처음만난기운", "처음 만난 기운"),
+      연애운: asText("연애운"),
+      결혼운: asText("결혼운"),
+      갈등요인: asText("갈등요인", "갈등 요인"),
+      극복방법: asText("극복방법", "극복 방법"),
+      재물궁합: asText("재물궁합", "재물 궁합"),
+      최고의순간: asText("최고의순간", "최고의 순간"),
+      총조언: asText("총조언", "총 조언", "조언")
+    };
+  }
+
+  if (serviceId === "name") {
+    const recommendedNames = pick("추천이름3개", "추천 이름 3개", "추천이름");
+    return {
+      이름분석: asText("이름분석", "이름 분석"),
+      이름의기운: asText("이름의기운", "이름의 기운"),
+      오행균형: asText("오행균형", "오행 균형"),
+      이름이주는운세: asText("이름이주는운세", "이름이 주는 운세"),
+      개명추천여부: asText("개명추천여부", "개명 추천 여부"),
+      추천이름3개: Array.isArray(recommendedNames) ? recommendedNames : [],
+      추천이름이유: asText("추천이름이유", "추천 이름 이유")
+    };
+  }
+
+  return {
+    총평: asText("총평", "summary"),
+    오늘의운세: asText("오늘의운세", "오늘의 운세"),
+    이번달운세: asText("이번달운세", "이번 달 운세", "월간운세"),
+    오늘의조언: asText("오늘의조언", "오늘의 조언"),
+    행운색상: luckyInfo.색상,
+    행운숫자: luckyInfo.숫자,
+    행운방향: luckyInfo.방향,
+    행운정보: luckyInfo
+  };
 }
 
 function createMockAnalysisResult(userInfo) {
