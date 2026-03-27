@@ -1,0 +1,13 @@
+backups
+backups_temp
+node_modules
+.next
+.git
+.env
+.env.local
+back/node_modules
+back/.next
+backups/restore-temp-20260315-2149
+**/node_modules
+**/.next
+*.zip

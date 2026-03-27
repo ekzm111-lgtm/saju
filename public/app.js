@@ -75,39 +75,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initStarBackground();
   initParallax();
   initZodiacFortuneBoard();
-  initMobileMenu();
   loadServices();
   bindForms();
   enhanceVipFormUI();
   unlockSajuFormFields();
 });
-
-function initMobileMenu() {
-  const toggleBtn = document.getElementById("mobile-toggle");
-  const nav = document.querySelector(".nav");
-  if (!toggleBtn || !nav) return;
-
-  toggleBtn.addEventListener("click", () => {
-    nav.classList.toggle("active");
-    const icon = toggleBtn.querySelector("i");
-    if (icon) {
-      icon.classList.toggle("fa-bars");
-      icon.classList.toggle("fa-xmark");
-    }
-  });
-
-  // 메뉴 링크 클릭 시 메뉴 닫기
-  nav.querySelectorAll("a").forEach(link => {
-    link.addEventListener("click", () => {
-      nav.classList.remove("active");
-      const icon = toggleBtn.querySelector("i");
-      if (icon) {
-        icon.classList.add("fa-bars");
-        icon.classList.remove("fa-xmark");
-      }
-    });
-  });
-}
 
 function initAOS() {
   if (!window.AOS) return;

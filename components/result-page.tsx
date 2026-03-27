@@ -147,6 +147,10 @@ export function ResultPage({
           .loading-steps p.active { opacity: 1; animation: pulse 2s infinite; color: var(--gold); }
           @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
           .loading-sub { margin-top: 40px; font-size: 0.9rem; opacity: 0.6; letter-spacing: 0.1em; }
+          @media (max-width: 768px) {
+            .text-grad { font-size: 1.8rem; }
+            .loading-steps p { font-size: 0.95rem; }
+          }
         `}</style>
       </main>
     );
@@ -182,6 +186,11 @@ export function ResultPage({
           .refund-guide { text-align: left; background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; font-size: 0.95rem; }
           .alert-box { border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 15px; padding-top: 15px; color: var(--gold); }
           .error-actions { display: flex; gap: 15px; justify-content: center; }
+          @media (max-width: 640px) {
+            .error-card { padding: 30px 20px; }
+            .error-actions { flex-direction: column; }
+            .btn-gold-fill { width: 100%; }
+          }
         `}</style>
       </main>
     );
@@ -282,6 +291,29 @@ export function ResultPage({
           <p>© 2026 AI Saju Myeongin. All rights reserved.</p>
         </div>
       </footer>
+      <style jsx>{`
+        .subpage-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .detail-layout { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
+        .title-lg { font-size: 3rem; line-height: 1.2; margin-bottom: 20px; }
+        
+        @media (max-width: 1024px) {
+          .detail-layout { grid-template-columns: 1fr; }
+          .grid-2 { grid-template-columns: 1fr; }
+          .result-visual { order: -1; }
+          .result-copy { text-align: center; }
+          .meta-info-row { justify-content: center; flex-wrap: wrap; gap: 15px; }
+          .hero-actions { justify-content: center; flex-direction: column; }
+        }
+        
+        @media (max-width: 640px) {
+          .subpage-header { padding: 15px 20px; flex-direction: column; gap: 15px; }
+          .title-lg { font-size: 2rem; }
+          .meta-info-row { flex-direction: column; align-items: center; gap: 10px; }
+          .meta-item { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
+          .prime-btn { width: 100%; justify-content: center; }
+        }
+      `}</style>
     </main>
   );
 }

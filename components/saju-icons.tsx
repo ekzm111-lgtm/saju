@@ -1,4 +1,4 @@
-type IconName = "flow" | "love" | "wealth" | "time" | "shield" | "spark" | "dragon" | "leaf" | "wand" | "coins" | "fire" | "sun" | "moon" | "heart";
+type IconName = "flow" | "love" | "wealth" | "time" | "shield" | "spark" | "dragon" | "leaf" | "wand" | "coins" | "fire" | "sun" | "moon" | "heart" | "07";
 
 type SajuIconProps = {
   name: IconName;
@@ -40,7 +40,7 @@ export function SajuIcon({ name, className }: SajuIconProps) {
       {name === "shield" ? (
         <path d="M24 14L32 17V23C32 28.5 28.5 32.5 24 34C19.5 32.5 16 28.5 16 23V17L24 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       ) : null}
-      {name === "spark" ? (
+      {name === "spark" || name === "07" ? (
         <path d="M24 14L26 22L34 24L26 26L24 34L22 26L14 24L22 22L24 14Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       ) : null}
       {name === "dragon" ? (
@@ -73,4 +73,3 @@ export function SajuIcon({ name, className }: SajuIconProps) {
     </svg>
   );
 }
-
