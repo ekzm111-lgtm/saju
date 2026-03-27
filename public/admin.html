@@ -1122,7 +1122,7 @@ function getAdminPasswordCandidates(admin) {
       document.getElementById("admin-modal").classList.add("open");
     }
 
-    async function saveAdminData() {
+async function saveAdminData() {
       if (!currentAdmin || currentAdmin.role !== "super_admin") return alert("슈퍼 관리자만 사용할 수 있는 기능입니다.");
       
       const id = document.getElementById("edit-admin-id").value;
@@ -1136,17 +1136,37 @@ function getAdminPasswordCandidates(admin) {
       if (!login_id) return alert("로그인 아이디는 필수입니다.");
       if (!id && !password) return alert("새 관리자 추가 시 비밀번호는 필수입니다.");
       
-      const payload = { name, role, tel, email };
-      if (password) payload.password = password;
+      const payloads = buildAdminPayload({
+        loginId: login_id,
+        password,
+        name,
+        role,
+        tel,
+        email
+      });
       
       try {
         if (id) {
-          const { error } = await supabaseClient.from("admins").update(payload).eq("id", id);
+          const updatePrimary = { name, role, tel, email };
+          if (password) updatePrimary.password = password;
+
+          let { error } = await supabaseClient.from("admins").update(updatePrimary).eq("id", id);
+          if (error && isMissingAdminColumnError(error)) {
+            const updateFallback = {
+              auth_user_id: login_id,
+              name: password || name || login_id,
+              email,
+              role
+            };
+            ({ error } = await supabaseClient.from("admins").update(updateFallback).eq("id", id));
+          }
           if (error) throw error;
           alert("관리자 정보가 수정되었습니다.");
         } else {
-          payload.login_id = login_id;
-          const { error } = await supabaseClient.from("admins").insert(payload);
+          let { error } = await supabaseClient.from("admins").insert(payloads.primary);
+          if (error && isMissingAdminColumnError(error)) {
+            ({ error } = await supabaseClient.from("admins").insert(payloads.fallback));
+          }
           if (error) throw error;
           alert("새 관리자가 추가되었습니다.");
         }
