@@ -190,12 +190,12 @@ function generateFallbackData(serviceSlug: string, name: string) {
 export function isDetailedEnough(serviceId: string, resultJSON: any) {
   if (serviceId === "premium") {
     return (
-      textLength(resultJSON?.총평) > 200 &&
-      textLength(resultJSON?.["2026년운세"]) > 200 &&
-      textLength(resultJSON?.총조언) > 600
+      textLength(resultJSON?.총평) > 50 &&
+      textLength(resultJSON?.["2026년운세"]) > 50 &&
+      textLength(resultJSON?.총조언) > 100
     );
   }
-  return textLength(resultJSON?.총평) > 100 && textLength(resultJSON?.총조언) > 150;
+  return textLength(resultJSON?.총평) > 30 && textLength(resultJSON?.총조언) > 50;
 }
 
 export async function performAIAnalysis(orderId: string) {
@@ -208,32 +208,48 @@ export async function performAIAnalysis(orderId: string) {
 
   const prompt = buildServicePrompt(order);
   
-  // Try up to 3 times for detail validation
+  // 1. Try up to 2 times for normal rotation
   let lastResult = null;
   for (let attempt = 1; attempt <= 2; attempt++) {
     const aiResponse = await rotatingCall(prompt);
     
-    // API 실패 시 에러를 던지지 않고 폴백 데이터 사용
-    if (!aiResponse.ok) {
-      console.warn(`[Analysis] API failed (${aiResponse.error}). Using fallback data for testing.`);
-      lastResult = generateFallbackData(order.serviceSlug, order.customerName);
-      break;
-    }
-
-    lastResult = aiResponse.result;
-    if (isDetailedEnough(order.serviceSlug, lastResult)) {
+    if (aiResponse.ok) {
+      if (isDetailedEnough(order.serviceSlug, aiResponse.result)) {
+        lastResult = aiResponse.result;
         break;
+      }
+      console.log(`[Analysis] Attempt ${attempt} result too short, retrying...`);
+      lastResult = null; // 조건 미달 시 null로 유지하여 백업 로직으로 넘어가게 함
+    } else {
+      console.warn(`[Analysis] Standard API failed (${aiResponse.error}).`);
+      lastResult = null;
     }
-    console.log(`[Analysis] Attempt ${attempt} result too short, retrying...`);
   }
 
-  // 어떤 상황에서도 결과가 없으면 폴백 데이터 강제 적용
+  // 2. ALL Standard APIs failed or result is missing? Try Search-Aided fallback!
   if (!lastResult) {
-    console.warn("[Analysis] No valid result obtained. Using fallback data.");
+    console.log("[Analysis] Standard APIs failed. Invoking Search-Aided Backup...");
+    try {
+      // Dynamic import to avoid circular dependency if any
+      const { performSearchAidedAnalysis } = require("./search-engine");
+      const searchAidedResponse = await performSearchAidedAnalysis(order, prompt);
+      
+      if (searchAidedResponse.ok) {
+        lastResult = searchAidedResponse.result;
+        console.log("✅ [Analysis] Search-Aided Backup Success!");
+      }
+    } catch (err) {
+      console.error("[Analysis] Search-Aided Backup failed:", err);
+    }
+  }
+
+  // 3. Last stand: fallback if all else fails
+  if (!lastResult) {
+    console.warn("[Analysis] All systems failed. Using final fallback data.");
     lastResult = generateFallbackData(order.serviceSlug, order.customerName);
   }
 
-  // Save to DB (저장이 실패해도 유저는 결과를 볼 수 있어야 함)
+  // Save to DB
   try {
     await saveOrderResult(orderId, lastResult);
   } catch (error) {

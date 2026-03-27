@@ -10,12 +10,17 @@ export function AdminLoginForm() {
   return (
     <form action={formAction} className="admin-login-form">
       <label>
-        이메일
-        <input type="email" name="email" placeholder="admin@example.com" />
+        아이디
+        <input type="text" name="loginId" placeholder="관리자 아이디 입력" autoComplete="username" />
       </label>
       <label>
         비밀번호
-        <input type="password" name="password" placeholder="비밀번호 입력" />
+        <input
+          type="password"
+          name="password"
+          placeholder="비밀번호 입력"
+          autoComplete="current-password"
+        />
       </label>
       {state?.error ? <p className="form-error">{state.error}</p> : null}
       <button type="submit" className="primary-button full-width" disabled={isPending}>

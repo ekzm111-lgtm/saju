@@ -7,12 +7,10 @@ export default function AdminLoginPage() {
         <p className="eyebrow">Admin Access</p>
         <h1>사주명인 관리자 로그인</h1>
         <p className="admin-login-copy">
-          운영자 계정으로 로그인하면 서비스, 결제, 후기, 관리자 계정을 관리할 수 있습니다.
+          관리자 아이디로 로그인하면 서비스, 결제, 후기, 관리자 계정을 관리할 수 있습니다.
         </p>
         <AdminLoginForm />
-        <p className="admin-login-hint">
-          로컬 테스트용 기본 계정: `admin@sajumyeongin.local` / `admin1234`
-        </p>
+        <p className="admin-login-hint">현재 등록된 관리자 계정 예시: `1111` / `1111`</p>
       </section>
     </main>
   );

@@ -1,39 +1,52 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { ADMIN_SESSION_COOKIE, getAdminByLogin } from "@/lib/admin";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase";
 
 export async function signInAdmin(_: { error?: string } | undefined, formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const loginId = String(formData.get("loginId") ?? "").trim();
   const password = String(formData.get("password") ?? "").trim();
 
-  if (!email || !password) {
-    return { error: "이메일과 비밀번호를 모두 입력해주세요." };
+  if (!loginId || !password) {
+    return { error: "아이디와 비밀번호를 모두 입력해 주세요." };
   }
 
-  if (!isSupabaseConfigured()) {
-    if (email === "admin@sajumyeongin.local" && password === "admin1234") {
-      redirect("/admin");
-    }
+  const admin = await getAdminByLogin(loginId, password);
 
-    return { error: "로컬 관리자 계정 정보가 올바르지 않습니다." };
+  if (!admin) {
+    return { error: "아이디 또는 비밀번호가 일치하지 않습니다." };
   }
 
-  const supabase = await createSupabaseServer();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  const cookieStore = await cookies();
+  cookieStore.set(ADMIN_SESSION_COOKIE, admin.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 12
   });
 
-  if (error) {
-    return { error: "로그인에 실패했습니다. 계정 정보를 확인해주세요." };
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseServer();
+    await supabase.auth.signOut();
   }
 
   redirect("/admin");
 }
 
 export async function signOutAdmin() {
+  const cookieStore = await cookies();
+  cookieStore.set(ADMIN_SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0
+  });
+
   if (isSupabaseConfigured()) {
     const supabase = await createSupabaseServer();
     await supabase.auth.signOut();
@@ -41,4 +54,3 @@ export async function signOutAdmin() {
 
   redirect("/admin/login");
 }
-

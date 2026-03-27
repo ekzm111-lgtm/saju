@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import type { PaymentFormState } from "@/lib/payment";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase";
 import { getServiceBySlug } from "@/data/site-content";
+import { sendAdminNotificationMail } from "./mail";
 
 export type OrderRecord = {
   orderId: string;
@@ -137,16 +138,36 @@ export async function markOrderPaid({
         raw_payload: rawPayload
       })
       .eq("order_id", orderId);
+
+    const { data: updatedRow } = await supabase.from("payments").select("*").eq("order_id", orderId).maybeSingle();
+    if (updatedRow) {
+      const p = updatedRow.raw_payload as any || {};
+      const t = String(updatedRow.service_name_snapshot || "");
+      const mailType = t.includes("문의") ? "contact" : t.includes("VIP") ? "vip" : "payment";
+      await sendAdminNotificationMail(mailType, {
+        customerName: updatedRow.buyer_name,
+        customerPhone: updatedRow.buyer_phone || p.phone,
+        customerEmail: updatedRow.buyer_email,
+        serviceTitle: updatedRow.service_name_snapshot,
+        amount: updatedRow.amount,
+        question: p.question
+      });
+    }
     return;
   }
 
   const current = memoryOrders.get(orderId);
   if (current) {
-    memoryOrders.set(orderId, {
+    const nextRecord = {
       ...current,
-      status: "paid",
+      status: "paid" as const,
       paymentId: paymentId ?? current.paymentId
-    });
+    };
+    memoryOrders.set(orderId, nextRecord);
+    
+    const t = String(nextRecord.serviceTitle || "");
+    const mailType = t.includes("문의") ? "contact" : t.includes("VIP") ? "vip" : "payment";
+    await sendAdminNotificationMail(mailType, nextRecord);
   }
 }
 

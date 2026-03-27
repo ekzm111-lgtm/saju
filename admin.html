@@ -48,6 +48,7 @@
     .nav-count.has-new { background: var(--admin-blue-soft); color: var(--admin-blue); font-weight: 700; }
     .home-box { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--admin-border); }
     .home-box .nav-btn { color: var(--admin-text); background: rgba(255, 255, 255, 0.04); }
+    .mobile-only-home { display: none; }
 
     /* Main */
     .main { padding: 160px 40px 40px; width: 100%; box-sizing: border-box; }
@@ -127,6 +128,7 @@
       .nav-btn i { font-size: 1.05rem; margin-bottom: 2px; }
       .nav-count { position: absolute; top: 2px; right: 50%; transform: translateX(16px); font-size: 0.52rem; padding: 1px 3px; border-radius: 8px; }
       .home-box { display: none; }
+      .mobile-only-home { display: flex; }
       .main { padding: 20px 15px 100px; }
       .grid { grid-template-columns: 1fr; gap: 15px; }
       
@@ -150,7 +152,7 @@
     }
   </style>
 </head>
-<body style="display:none;" onload="checkAuth()">
+<body onload="initApp()">
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
@@ -163,6 +165,7 @@
         <button class="nav-btn" data-tab="requests" data-category="requests" onclick="switchTab('requests', this, 'requests')"><span><i class="fa-solid fa-list-check"></i> 일반 분석 요청</span><span id="count-requests" class="nav-count">0</span></button>
         <button class="nav-btn" data-tab="contacts" data-category="contacts" onclick="switchTab('contacts', this, 'contacts')"><span><i class="fa-solid fa-envelope"></i> 고객 문의</span><span id="count-contacts" class="nav-count">0</span></button>
         <button class="nav-btn" data-tab="services" onclick="switchTab('services', this)"><span><i class="fa-solid fa-gears"></i> 서비스 관리</span></button>
+        <button id="nav-btn-admins" class="nav-btn" data-tab="admins" onclick="switchTab('admins', this)" style="display:none;"><span><i class="fa-solid fa-users-gear"></i> 관리자 추가</span></button>
         <button class="nav-btn mobile-only-home" onclick="location.href='index.html'"><span><i class="fa-solid fa-house"></i> 홈으로</span></button>
       </nav>
       <div class="home-box pc-only">
@@ -271,7 +274,6 @@
                   <th>연락처</th>
                   <th>서비스</th>
                   <th>처리 상태</th>
-                  <th>결제 상태</th>
                   <th>메일</th>
                   <th>관리</th>
                 </tr>
@@ -343,6 +345,43 @@
                 </tr>
               </thead>
               <tbody id="service-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 관리자 계정 관리 탭 -->
+      <div id="tab-admins" class="tab">
+        <div class="header">
+          <div>
+            <h2>관리자 시스템 설정</h2>
+            <p>슈퍼 관리자 권한으로 시스템 관리자를 추가 및 삭제합니다.</p>
+          </div>
+          <button class="manage-btn" style="margin-top:20px;" onclick="openAdminModal()">
+            <i class="fa-solid fa-plus"></i> 새 관리자 추가
+          </button>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>관리자 리스트</h3>
+            <div class="chip">
+              <small>등록된 인원</small>
+              <strong id="panel-admins-count">0</strong>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>요약/이름</th>
+                  <th>접속 아이디</th>
+                  <th>연락처</th>
+                  <th>가입/수정일자</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="admin-rows"></tbody>
             </table>
           </div>
         </div>
@@ -473,6 +512,56 @@
       </div>
       <div class="modal-actions">
         <button class="ghost-btn" onclick="closeModal('request-modal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 로그인 라우터 오버레이 -->
+  <div id="login-overlay" style="position:fixed; inset:0; background:var(--admin-sidebar); z-index:99999; display:flex; align-items:center; justify-content:center;">
+    <div style="background:var(--admin-bg); padding:40px; border-radius:20px; border:1px solid var(--admin-border); width:min(400px, 90%); text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <div style="color:var(--admin-gold); font-size:1.5rem; font-weight:700; margin-bottom:20px; font-family:'Noto Serif KR', serif;">Memory Fortune AI<br>Admin Portal</div>
+      <div style="display:flex; flex-direction:column; gap:15px; text-align:left;">
+        <input type="text" id="login-id" placeholder="관리자 아이디 (login_id)" style="padding:14px; border-radius:10px; border:1px solid var(--admin-border); background:#161b22; color:#fff;" autocomplete="off">
+        <input type="password" id="login-pw" placeholder="비밀번호" style="padding:14px; border-radius:10px; border:1px solid var(--admin-border); background:#161b22; color:#fff;" onkeydown="if(event.key==='Enter') executeAccountLogin()">
+        <label style="display:flex; align-items:center; gap:8px; color:var(--admin-muted); font-size:0.85rem; cursor:pointer;">
+          <input type="checkbox" id="login-save"> 내 기기에 아이디 / 비밀번호 정보 자동 저장
+        </label>
+        <button class="manage-btn" style="width:100%; padding:14px; margin-top:10px; font-size:1rem;" onclick="executeAccountLogin()">로그인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 모달 -->
+  <div id="admin-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="admin-modal-title">관리자 추가/수정</h3>
+        <button class="ghost-btn" onclick="closeModal('admin-modal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-admin-id" value="">
+        <div class="modal-grid">
+          <div class="modal-field"><label>로그인 아이디</label><input type="text" id="edit-login-id" class="select" placeholder="고유 ID"></div>
+          <div class="modal-field"><label>비밀번호</label><input type="text" id="edit-password" class="select" placeholder="공란일시 기존 비밀번호 유지"></div>
+        </div>
+        <div class="modal-grid">
+          <div class="modal-field"><label>사용자 이름</label><input type="text" id="edit-name" class="select"></div>
+          <div class="modal-field">
+            <label>계정 권한</label>
+            <select id="edit-role" class="select">
+              <option value="admin">일반 관리자 (조회/수정)</option>
+              <option value="super_admin">초고속 슈퍼 관리자 (전체 권한)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-grid">
+          <div class="modal-field"><label>연락처</label><input type="text" id="edit-tel" class="select"></div>
+          <div class="modal-field"><label>이메일</label><input type="text" id="edit-email" class="select"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost-btn" onclick="closeModal('admin-modal')">취소</button>
+        <button class="manage-btn" onclick="saveAdminData()">저장 완료</button>
       </div>
     </div>
   </div>
@@ -649,16 +738,120 @@
       return `<span class="status-chip ${cls}">${labels[s] || s}</span>`;
     }
 
-    function checkAuth() {
-      const id = prompt("관리자 아이디를 입력해 주세요.");
-      const pw = prompt("관리자 비밀번호를 입력해 주세요.");
-      if (id === "1111" && pw === "1111") {
-        document.body.style.display = "block";
-        initAdmin();
+    let currentAdmin = null;
+
+    function initApp() {
+      const savedId = localStorage.getItem("mf_admin_id");
+      const savedPw = localStorage.getItem("mf_admin_pw");
+      if (savedId && savedPw) {
+        document.getElementById("login-id").value = savedId;
+        document.getElementById("login-pw").value = savedPw;
+        document.getElementById("login-save").checked = true;
+      }
+      
+      const { createClient } = supabase;
+      if (!SUPABASE_CONFIG?.URL || !SUPABASE_CONFIG?.ANON_KEY) {
+        alert("supabase-config.js 설정을 먼저 확인해 주세요.");
         return;
       }
-      alert("인증에 실패했습니다.");
-      location.href = "index.html";
+      supabaseClient = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+      
+      const sessionStr = sessionStorage.getItem("mf_admin_session");
+      if (sessionStr) {
+        currentAdmin = JSON.parse(sessionStr);
+        document.getElementById("login-overlay").style.display = "none";
+        initAdminData();
+      }
+    }
+
+function getAdminPasswordCandidates(admin) {
+      return [admin?.password, admin?.passwd, admin?.login_password, admin?.name]
+        .filter(Boolean)
+        .map((value) => String(value));
+    }
+
+    async function findAdminByLoginId(lid) {
+      const attempts = [
+        { column: "login_id", value: lid },
+        { column: "auth_user_id", value: lid }
+      ];
+
+      for (const attempt of attempts) {
+        const { data, error } = await supabaseClient
+          .from("admins")
+          .select("*")
+          .eq(attempt.column, attempt.value)
+          .maybeSingle();
+
+        if (!error && data) {
+          return data;
+        }
+      }
+
+      return null;
+    }
+
+    async function executeAccountLogin() {
+      const lid = document.getElementById("login-id").value.trim();
+      const pw = document.getElementById("login-pw").value.trim();
+      const save = document.getElementById("login-save").checked;
+      
+      if (!lid || !pw) return alert("아이디와 비밀번호를 입력해 주세요.");
+      
+      try {
+        const admin = await findAdminByLoginId(lid);
+        const passwordCandidates = getAdminPasswordCandidates(admin);
+
+        if (!admin || !passwordCandidates.includes(pw)) {
+          alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+          return;
+        }
+        
+        currentAdmin = admin;
+        sessionStorage.setItem("mf_admin_session", JSON.stringify(admin));
+        
+        if (save) {
+          localStorage.setItem("mf_admin_id", lid);
+          localStorage.setItem("mf_admin_pw", pw);
+        } else {
+          localStorage.removeItem("mf_admin_id");
+          localStorage.removeItem("mf_admin_pw");
+        }
+        
+        document.getElementById("login-overlay").style.display = "none";
+        initAdminData();
+      } catch (err) {
+        console.error("Login failed:", err);
+        alert("서버 연결에 실패했습니다.");
+      }
+    }
+
+    async function initAdminData() {
+      if (currentAdmin.role === "super_admin") {
+        document.getElementById("nav-btn-admins").style.display = "flex";
+      }
+      await Promise.all([loadData(), loadServices(), loadAdmins()]);
+      supabaseClient.channel("payments-all").on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => loadData()).subscribe();
+      supabaseClient.channel("services-all").on("postgres_changes", { event: "*", schema: "public", table: "services" }, () => loadServices()).subscribe();
+      if (currentAdmin.role === "super_admin") {
+        supabaseClient.channel("admins-all").on("postgres_changes", { event: "*", schema: "public", table: "admins" }, () => loadAdmins()).subscribe();
+      }
+    }
+
+    async function loadAdmins() {
+      if (!currentAdmin || currentAdmin.role !== "super_admin") return;
+      try {
+        const { data, error } = await supabaseClient.from("admins").select("*").order("created_at", { ascending: false });
+        if (error) throw error;
+        
+        const supers = data.filter(a => a.role === 'super_admin');
+        const norms = data.filter(a => a.role !== 'super_admin');
+        state.admins = [...supers, ...norms];
+        
+        renderAdminRows();
+      } catch (err) {
+        console.error("Admins load failed:", err);
+      }
     }
 
     async function initAdmin() {
@@ -771,11 +964,15 @@
       document.getElementById("panel-requests-count").innerText = state.requests.length;
       document.getElementById("panel-contacts-count").innerText = newCon;
       document.getElementById("panel-services-count").innerText = state.services?.length || 0;
+      if (document.getElementById("panel-admins-count")) {
+        document.getElementById("panel-admins-count").innerText = state.admins?.length || 0;
+      }
 
       renderVipRows();
       renderRequestRows();
       renderContactRows();
       renderServices();
+      if (typeof renderAdminRows === "function") renderAdminRows();
     }
 
     function renderVipRows() {
@@ -848,12 +1045,108 @@
       if (!container) return;
       container.innerHTML = (state.services || []).map(svc => `
         <tr>
-          <td><span class="status-chip status-ready">${escapeHtml(svc.category)}</span></td>
-          <td><strong>${escapeHtml(svc.display_name || svc.name)}</strong></td>
-          <td>${Number(svc.price).toLocaleString()}원</td>
-          <td style="color:var(--admin-muted); font-size:0.75rem;">${escapeHtml(svc.description)}</td>
+          <td><span class="badge">${escapeHtml(svc.category)}</span></td>
+          <td><strong>${escapeHtml(svc.name)}</strong></td>
+          <td>${(svc.price || 0).toLocaleString()}원</td>
+          <td>${escapeHtml(svc.description || "")}</td>
         </tr>
       `).join("") || '<tr><td colspan="4" class="empty">데이터가 없습니다.</td></tr>';
+    }
+
+    function renderAdminRows() {
+      const container = document.getElementById("admin-rows");
+      if (!container) return;
+      container.innerHTML = (state.admins || []).map(row => `
+        <tr>
+          <td><span class="status-chip ${row.role === 'super_admin' ? 'status-success' : 'status-ready'}">${row.role === 'super_admin' ? '슈퍼 관리자' : '일반 관리자'}</span></td>
+          <td><strong>${escapeHtml(row.name || "-")}</strong></td>
+          <td>${escapeHtml(row.login_id)}</td>
+          <td>${escapeHtml(row.tel || "-")}</td>
+          <td>${formatDate(row.created_at)}</td>
+          <td>
+            <button class="manage-btn" onclick="openAdminModal('${row.id}')">수정</button>
+            ${row.role !== 'super_admin' ? `<button class="ghost-btn" style="color:var(--admin-red);" onclick="deleteAdmin('${row.id}')">삭제</button>` : ''}
+          </td>
+        </tr>
+      `).join("") || '<tr><td colspan="6" class="empty">데이터가 없습니다.</td></tr>';
+    }
+
+    function openAdminModal(id = "") {
+      document.getElementById("admin-modal-title").innerText = id ? "관리자 수정" : "새 관리자 추가";
+      document.getElementById("edit-admin-id").value = id;
+      document.getElementById("edit-password").value = "";
+      
+      if (id) {
+        const admin = state.admins.find(a => a.id === id);
+        document.getElementById("edit-login-id").value = admin.login_id;
+        document.getElementById("edit-login-id").disabled = true;
+        document.getElementById("edit-name").value = admin.name || "";
+        document.getElementById("edit-role").value = admin.role || "admin";
+        document.getElementById("edit-role").disabled = (admin.role === "super_admin");
+        document.getElementById("edit-tel").value = admin.tel || "";
+        document.getElementById("edit-email").value = admin.email || "";
+      } else {
+        document.getElementById("edit-login-id").value = "";
+        document.getElementById("edit-login-id").disabled = false;
+        document.getElementById("edit-name").value = "";
+        document.getElementById("edit-role").value = "admin";
+        document.getElementById("edit-role").disabled = false;
+        document.getElementById("edit-tel").value = "";
+        document.getElementById("edit-email").value = "";
+      }
+      
+      document.getElementById("admin-modal").classList.add("open");
+    }
+
+    async function saveAdminData() {
+      if (!currentAdmin || currentAdmin.role !== "super_admin") return alert("슈퍼 관리자만 사용할 수 있는 기능입니다.");
+      
+      const id = document.getElementById("edit-admin-id").value;
+      const login_id = document.getElementById("edit-login-id").value.trim();
+      const password = document.getElementById("edit-password").value.trim();
+      const name = document.getElementById("edit-name").value.trim();
+      const role = document.getElementById("edit-role").value;
+      const tel = document.getElementById("edit-tel").value.trim();
+      const email = document.getElementById("edit-email").value.trim();
+      
+      if (!login_id) return alert("로그인 아이디는 필수입니다.");
+      if (!id && !password) return alert("새 관리자 추가 시 비밀번호는 필수입니다.");
+      
+      const payload = { name, role, tel, email };
+      if (password) payload.password = password;
+      
+      try {
+        if (id) {
+          const { error } = await supabaseClient.from("admins").update(payload).eq("id", id);
+          if (error) throw error;
+          alert("관리자 정보가 수정되었습니다.");
+        } else {
+          payload.login_id = login_id;
+          const { error } = await supabaseClient.from("admins").insert(payload);
+          if (error) throw error;
+          alert("새 관리자가 추가되었습니다.");
+        }
+        closeModal("admin-modal");
+        loadAdmins();
+      } catch (err) {
+        console.error("Save Admin Failed", err);
+        alert(err.message || "저장 중 오류가 발생했습니다.");
+      }
+    }
+
+    async function deleteAdmin(id) {
+      if (!currentAdmin || currentAdmin.role !== "super_admin") return alert("권한이 없습니다.");
+      if (!confirm("정말 이 관리자 계정을 삭제하시겠습니까?")) return;
+      
+      try {
+        const { error } = await supabaseClient.from("admins").delete().eq("id", id).neq("role", "super_admin");
+        if (error) throw error;
+        alert("삭제되었습니다.");
+        loadAdmins();
+      } catch (err) {
+        console.error("Delete Admin Failed", err);
+        alert("삭제 중 오류가 발생했습니다.");
+      }
     }
 
     function vipStatusChip(row) {
