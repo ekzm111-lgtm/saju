@@ -568,7 +568,7 @@
 
   <script>
     let supabaseClient;
-    const state = { payments: [], vip: [], requests: [], contacts: [] };
+    const state = { payments: [], vip: [], requests: [], contacts: [], admins: [], services: [] };
     const currentItem = { vip: null, request: null, contact: null };
     const ADMIN_META_KEY = "admin_meta";
     const LOCAL_PDF_URL_PREFIX = "local-pdf://";
@@ -770,6 +770,29 @@ function getAdminPasswordCandidates(admin) {
         .map((value) => String(value));
     }
 
+    function getAdminLoginId(admin) {
+      return admin?.login_id || admin?.auth_user_id || "";
+    }
+
+    function buildAdminPayload({ loginId, password, name, role, tel, email }) {
+      return {
+        primary: {
+          login_id: loginId,
+          password,
+          name,
+          role,
+          tel,
+          email
+        },
+        fallback: {
+          auth_user_id: loginId,
+          name: password || name || loginId,
+          email,
+          role
+        }
+      };
+    }
+
     async function findAdminByLoginId(lid) {
       const attempts = [
         { column: "login_id", value: lid },
@@ -829,6 +852,7 @@ function getAdminPasswordCandidates(admin) {
     async function initAdminData() {
       if (currentAdmin.role === "super_admin") {
         document.getElementById("nav-btn-admins").style.display = "flex";
+        document.querySelector("#nav-btn-admins span").innerHTML = '<i class="fa-solid fa-users-gear"></i> 관리자';
       }
       await Promise.all([loadData(), loadServices(), loadAdmins()]);
       supabaseClient.channel("payments-all").on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => loadData()).subscribe();
@@ -1060,7 +1084,7 @@ function getAdminPasswordCandidates(admin) {
         <tr>
           <td><span class="status-chip ${row.role === 'super_admin' ? 'status-success' : 'status-ready'}">${row.role === 'super_admin' ? '슈퍼 관리자' : '일반 관리자'}</span></td>
           <td><strong>${escapeHtml(row.name || "-")}</strong></td>
-          <td>${escapeHtml(row.login_id)}</td>
+          <td>${escapeHtml(getAdminLoginId(row) || "-")}</td>
           <td>${escapeHtml(row.tel || "-")}</td>
           <td>${formatDate(row.created_at)}</td>
           <td>
@@ -1078,7 +1102,7 @@ function getAdminPasswordCandidates(admin) {
       
       if (id) {
         const admin = state.admins.find(a => a.id === id);
-        document.getElementById("edit-login-id").value = admin.login_id;
+        document.getElementById("edit-login-id").value = getAdminLoginId(admin);
         document.getElementById("edit-login-id").disabled = true;
         document.getElementById("edit-name").value = admin.name || "";
         document.getElementById("edit-role").value = admin.role || "admin";
