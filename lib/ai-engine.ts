@@ -75,13 +75,14 @@ async function callGroq(prompt: string, isHealthcheck: boolean): Promise<ApiResu
 
 async function callGemini(prompt: string, isHealthcheck: boolean, retryCount = 0): Promise<ApiResult> {
   const key = process.env.GEMINI_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+  const model = process.env.GEMINI_MODEL || process.env.GOOGLE_MODEL || "gemini-2.0-flash";
   if (!key) return { ok: false, status: 503, error: "Gemini 키 없음" };
 
   try {
     // URL을 v1에서 v1beta로 변경하여 모델 인식 문제 해결
     // gemini-2.0-flash-exp(실험적) 대신 안정적인 gemini-1.5-flash 사용
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

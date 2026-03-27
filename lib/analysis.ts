@@ -1,4 +1,3 @@
-import { getServiceBySlug } from "@/data/site-content";
 import { rotatingCall } from "./ai-engine";
 import { getOrder, saveOrderResult } from "./orders";
 
@@ -92,6 +91,15 @@ export function getServiceSchema(serviceId: string) {
 export function buildServicePrompt(order: any) {
   const { customerName, birthDate, birthTime, gender, question, serviceSlug } = order;
   const schema = getServiceSchema(serviceSlug);
+  const extraPremiumGuidance =
+    serviceSlug === "premium"
+      ? `
+6. 프리미엄 리포트이므로 일반 사주보다 훨씬 길고 풍부하게 작성해줘.
+7. 총평은 최소 12문장 이상, 2026년운세는 최소 12문장 이상, 총조언은 최소 18문장 이상 작성해줘.
+8. 재물운, 애정운, 건강운, 직업운은 각각 최소 8문장 이상으로 작성해줘.
+9. 월별운세는 1월부터 12월까지 각 달마다 최소 5문장 이상으로 작성하고, 기회, 주의점, 행동 조언을 모두 포함해줘.
+10. 각 항목은 서로 내용이 겹치지 않게 다른 관점으로 깊이 있게 작성해줘.`
+      : "";
 
   return `
 너는 30년 경력의 대한민국 최고의 사주명리학 권위자야.
@@ -107,9 +115,10 @@ export function buildServicePrompt(order: any) {
 [작성 지침]
 1. 말투는 매우 정중하고, 따뜻하며, 희망적인 메시지를 담아야 해.
 2. 반드시 아래 제공된 JSON 형식으로만 응답해. (JSON 외의 텍스트는 절대 포함하지 말 것)
-3. **중요**: 절대 짧게 답변하지 마. 각 항목당 최소 요구 문장 수를 반드시 지키고, 문장의 길이도 충분히 길게 작성해. 
-4. '총조언' 항목은 이 리포트의 핵심이야. ${customerName} 고객님의 삶에 실질적인 위로와 용기를 주는 15문장 이상의 장문으로 작성해줘.
+3. 절대 짧게 답변하지 마. 각 항목당 최소 요구 문장 수를 반드시 지키고, 문장의 길이도 충분히 길게 작성해.
+4. "총조언" 항목은 이 리포트의 핵심이야. ${customerName} 고객님의 삶에 실질적인 위로와 용기를 주는 15문장 이상의 장문으로 작성해줘.
 5. 분석 중간중간 "${customerName}님"이라고 부르며 대화하듯 개인화된 느낌을 줘.
+${extraPremiumGuidance}
 
 [응답 JSON 형식]
 ${schema}
@@ -120,82 +129,82 @@ function textLength(value: any) {
   return String(value || "").replace(/\s+/g, "").length;
 }
 
-/**
- * API 실패 시 사용할 폴백(가짜) 데이터 생성
- */
-function generateFallbackData(serviceSlug: string, name: string) {
+function generateFallbackData(serviceSlug: string) {
   const fallbackText = "AI 분석 서버 연결 상태가 원활하지 않아 표시되는 예시 데이터입니다. (테스트 모드)";
-  const longFallbackText = "현재 AI API 호출량이 많거나 연결이 불안정하여 임시 텍스트로 대체되었습니다. 실제 운영 환경에서는 상세한 운세가 분석되어 표시됩니다. 이 내용은 화면 구성을 확인하기 위한 테스트용 문구입니다.\n\nAPI 키 설정을 확인하거나 잠시 후 다시 시도해주세요.";
+  const longFallbackText =
+    "현재 AI API 호출량이 많거나 연결이 불안정하여 임시 텍스트로 대체되었습니다. 실제 운영 환경에서는 상세한 운세가 분석되어 표시됩니다. 이 내용은 화면 구성을 확인하기 위한 테스트용 문구입니다.\n\nAPI 키 설정을 확인하거나 잠시 후 다시 시도해주세요.";
 
   const common = {
-    "총평": longFallbackText,
-    "총조언": longFallbackText,
+    총평: longFallbackText,
+    총조언: longFallbackText
   };
 
   if (serviceSlug === "premium") {
     return {
       ...common,
-      "타고난기질": fallbackText,
-      "오행분석": { "목": "20%", "화": "20%", "토": "20%", "금": "20%", "수": "20%" },
+      타고난기질: fallbackText,
+      오행분석: { 목: "20%", 화: "20%", 토: "20%", 금: "20%", 수: "20%" },
       "2026년운세": fallbackText,
-      "상반기운세": fallbackText,
-      "하반기운세": fallbackText,
-      "월별운세": Array.from({ length: 12 }, (_, i) => ({ "월": `${i + 1}월`, "운세": fallbackText })),
-      "재물운": fallbackText,
-      "애정운": fallbackText,
-      "건강운": fallbackText,
-      "직업운": fallbackText,
-      "행운정보": { "색상": "Gold", "숫자": "7", "방향": "동쪽", "음식": "따뜻한 물", "조심할달": "없음" }
+      상반기운세: fallbackText,
+      하반기운세: fallbackText,
+      월별운세: Array.from({ length: 12 }, (_, i) => ({ 월: `${i + 1}월`, 운세: fallbackText })),
+      재물운: fallbackText,
+      애정운: fallbackText,
+      건강운: fallbackText,
+      직업운: fallbackText,
+      행운정보: { 색상: "Gold", 숫자: "7", 방향: "동쪽", 음식: "따뜻한 물", 조심할달: "없음" }
     };
   }
 
   if (serviceSlug === "couple") {
     return {
       ...common,
-      "궁합점수": 95,
-      "궁합총평": fallbackText,
-      "첫만남의기운": fallbackText,
-      "연애운": fallbackText,
-      "결혼운": fallbackText,
-      "갈등포인트": fallbackText,
-      "극복방법": "1. 서로의 다름 인정하기\n2. 대화 시간 늘리기\n3. 공통 취미 만들기\n4. 작은 선물하기\n5. 긍정적인 말 사용하기",
-      "재물궁합": fallbackText,
-      "최고의순간": fallbackText
+      궁합점수: 95,
+      궁합총평: fallbackText,
+      첫만남의기운: fallbackText,
+      연애운: fallbackText,
+      결혼운: fallbackText,
+      갈등포인트: fallbackText,
+      극복방법:
+        "1. 서로의 다름 인정하기\n2. 대화 시간 늘리기\n3. 공통 취미 만들기\n4. 작은 선물하기\n5. 긍정적인 말 사용하기",
+      재물궁합: fallbackText,
+      최고의순간: fallbackText
     };
   }
 
   if (serviceSlug === "name") {
     return {
       ...common,
-      "이름분석": fallbackText,
-      "이름의기운": fallbackText,
-      "오행균형": fallbackText,
-      "이름이주는운세": fallbackText,
-      "개명추천여부": "현재 이름의 기운이 좋아 유지를 권장합니다.",
-      "추천이름3개": ["김하늘", "김바다", "김우주"],
-      "추천이름이유": fallbackText
+      이름분석: fallbackText,
+      이름의기운: fallbackText,
+      오행균형: fallbackText,
+      이름이주는운세: fallbackText,
+      개명추천여부: "현재 이름의 기운이 좋아 유지를 권장합니다.",
+      추천이름3개: ["김하늘", "김바다", "김우주"],
+      추천이름이유: fallbackText
     };
   }
 
-  // 기본 (총운, 재물운, 연애운 등)
   return {
     ...common,
-    "오늘의운세": fallbackText,
-    "이번달운세": fallbackText,
-    "행운정보": { "색상": "Blue", "숫자": "3", "방향": "남쪽", "음식": "채소", "조심할달": "없음" },
-    "오늘의조언": "1. 여유를 가지세요.\n2. 긍정적으로 생각하세요.\n3. 주변을 둘러보세요.\n4. 건강을 챙기세요.\n5. 새로운 시작을 두려워하지 마세요."
+    오늘의운세: fallbackText,
+    이번달운세: fallbackText,
+    행운정보: { 색상: "Blue", 숫자: "3", 방향: "남쪽", 음식: "채소", 조심할달: "없음" },
+    오늘의조언:
+      "1. 여유를 가지세요.\n2. 긍정적으로 생각하세요.\n3. 주변을 둘러보세요.\n4. 건강을 챙기세요.\n5. 새로운 시작을 두려워하지 마세요."
   };
 }
 
 export function isDetailedEnough(serviceId: string, resultJSON: any) {
   if (serviceId === "premium") {
-    return (
-      textLength(resultJSON?.총평) > 50 &&
-      textLength(resultJSON?.["2026년운세"]) > 50 &&
-      textLength(resultJSON?.총조언) > 100
-    );
+    return textLength(resultJSON?.총평) > 50 && textLength(resultJSON?.["2026년운세"]) > 50 && textLength(resultJSON?.총조언) > 100;
   }
+
   return textLength(resultJSON?.총평) > 30 && textLength(resultJSON?.총조언) > 50;
+}
+
+function hasUsableSearchResult(resultJSON: any) {
+  return textLength(resultJSON?.총평) > 20 || textLength(resultJSON?.총조언) > 20;
 }
 
 export async function performAIAnalysis(orderId: string) {
@@ -203,53 +212,46 @@ export async function performAIAnalysis(orderId: string) {
   if (!order) throw new Error("Order not found");
   if (order.status !== "paid" && order.status !== "ready") throw new Error("Order not paid");
 
-  // Already analyzed?
   if (order.resultJson) return order.resultJson;
 
   const prompt = buildServicePrompt(order);
-  
-  // 1. Try up to 2 times for normal rotation
+
   let lastResult = null;
-  for (let attempt = 1; attempt <= 2; attempt++) {
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
     const aiResponse = await rotatingCall(prompt);
-    
+
     if (aiResponse.ok) {
       if (isDetailedEnough(order.serviceSlug, aiResponse.result)) {
         lastResult = aiResponse.result;
         break;
       }
       console.log(`[Analysis] Attempt ${attempt} result too short, retrying...`);
-      lastResult = null; // 조건 미달 시 null로 유지하여 백업 로직으로 넘어가게 함
     } else {
       console.warn(`[Analysis] Standard API failed (${aiResponse.error}).`);
-      lastResult = null;
     }
   }
 
-  // 2. ALL Standard APIs failed or result is missing? Try Search-Aided fallback!
   if (!lastResult) {
     console.log("[Analysis] Standard APIs failed. Invoking Search-Aided Backup...");
     try {
-      // Dynamic import to avoid circular dependency if any
       const { performSearchAidedAnalysis } = require("./search-engine");
       const searchAidedResponse = await performSearchAidedAnalysis(order, prompt);
-      
-      if (searchAidedResponse.ok) {
+
+      if (searchAidedResponse.ok && hasUsableSearchResult(searchAidedResponse.result)) {
         lastResult = searchAidedResponse.result;
         console.log("✅ [Analysis] Search-Aided Backup Success!");
       }
-    } catch (err) {
-      console.error("[Analysis] Search-Aided Backup failed:", err);
+    } catch (error) {
+      console.error("[Analysis] Search-Aided Backup failed:", error);
     }
   }
 
-  // 3. Last stand: fallback if all else fails
   if (!lastResult) {
     console.warn("[Analysis] All systems failed. Using final fallback data.");
-    lastResult = generateFallbackData(order.serviceSlug, order.customerName);
+    lastResult = generateFallbackData(order.serviceSlug);
   }
 
-  // Save to DB
   try {
     await saveOrderResult(orderId, lastResult);
   } catch (error) {

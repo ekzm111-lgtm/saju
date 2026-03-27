@@ -47,6 +47,31 @@
             margin-bottom: 10px;
             font-family: 'Noto Serif KR', serif;
         }
+        #legacy-loading-overlay p {
+            max-width: 420px;
+            padding: 0 20px;
+            line-height: 1.6;
+            word-break: keep-all;
+        }
+        @media (max-width: 640px) {
+            .spinner-legacy {
+                width: 52px;
+                height: 52px;
+                margin-bottom: 16px;
+            }
+            .loading-text-gold {
+                font-size: 1.05rem;
+                line-height: 1.35;
+                padding: 0 18px;
+                word-break: keep-all;
+            }
+            #legacy-loading-overlay p {
+                max-width: 300px;
+                padding: 0 18px;
+                font-size: 0.88rem;
+                line-height: 1.55;
+            }
+        }
     </style>
 </head>
 <body>
@@ -59,6 +84,9 @@
                 <img src="img/logo.png" alt="Logo" class="main-logo">
                 Memory Fortune AI
             </a>
+            <button id="mobile-toggle" class="mobile-toggle" type="button" aria-label="메뉴 열기">
+                <i class="fa-solid fa-bars"></i>
+            </button>
             <nav class="nav">
                 <div class="nav-item"><a href="#vip-section" class="nav-link">VIP 신청</a></div>
                 <div class="nav-item"><a href="#services" class="nav-link">서비스</a></div>
@@ -122,7 +150,27 @@
     <!-- 2-1. Vip 프리미엄서비스 -->
     <section id="vip-section" class="contact-section" style="background: linear-gradient(180deg, #05070a 0%, #0f1219 100%); border-top: 1px solid rgba(212, 175, 55, 0.1);">
         <div class="container">
-            <div class="contact-box" data-aos="fade-up">
+            <div class="section-header" data-aos="fade-up">
+                <p>VIP PREMIUM SERVICE</p>
+                <h2>1:1 정밀 사주 분석 신청</h2>
+            </div>
+            <div class="vip-entry-wrap" data-aos="fade-up" data-aos-delay="100">
+                <article class="service-item vip-entry-card popular" onclick="openVipModal()">
+                    <div class="popular-tag">PREMIUM</div>
+                    <div class="svc-visual vip-premium"></div>
+                    <div class="svc-body">
+                        <p class="category">VIP 서비스</p>
+                        <div class="vip-card-head">
+                            <h3>1:1 정밀 사주 분석</h3>
+                            <p class="price">₩30,000</p>
+                        </div>
+                        <p class="desc">전문가가 직접 분석한 상세 리포트를 이메일로 받아보는 프리미엄 상담형 서비스입니다.</p>
+                        <span class="btn-more">신청 정보 입력하기 <i class="fa-solid fa-chevron-right"></i></span>
+                    </div>
+                </article>
+            </div>
+            <div class="contact-box vip-modal-shell" data-aos="fade-up">
+                <button type="button" class="modal-close vip-modal-close" onclick="closeVipModal()"><i class="fa-solid fa-xmark"></i></button>
                 <div class="section-header">
                     <div class="vip-emblem"><i class="fa-solid fa-crown"></i></div>
                     <p style="color: var(--gold); letter-spacing: 2px; font-weight: 700; margin-bottom: 10px;">VIP PREMIUM SERVICE</p>
@@ -183,7 +231,10 @@
                             </label>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-gold-fill full-width" style="margin-top: 20px; font-size: 1.1rem;">30,000원 결제하고 신청하기</button>
+                    <div class="vip-form-actions">
+                        <button type="button" class="btn vip-cancel-button" onclick="closeVipModal()">취소</button>
+                        <button type="submit" class="btn btn-gold-fill vip-submit-inline" style="font-size: 1.1rem;">30,000원 결제하고 신청하기</button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -43,14 +43,20 @@
     @media (max-width: 720px) {
       .report-container { padding: 20px 15px; }
       .report-header { padding-top: 20px; margin-bottom: 24px; }
-      .report-header h1 { font-size: 1.6rem; }
+      .report-meta { font-size: 0.76rem; letter-spacing: 0.06em; }
+      .report-header h1 { font-size: 1.42rem; line-height: 1.38; }
+      .report-sub { font-size: 0.92rem; }
+      .link-notice { font-size: 0.92rem; line-height: 1.6; padding: 12px 14px; }
       .report-card { padding: 20px 15px; }
-      .card-title { font-size: 1.15rem; }
+      .card-title { font-size: 1.02rem; }
+      .card-text { font-size: 0.92rem; line-height: 1.72; }
+      .kv-key { font-size: 0.82rem; }
+      .kv-val { font-size: 0.9rem; }
       .kv-grid { grid-template-columns: 1fr; gap: 10px; }
       .month-grid { grid-template-columns: 1fr; }
       .name-list { grid-template-columns: 1fr; }
       .action-row { gap: 8px; }
-      .btn-action { width: 100%; padding: 14px; }
+      .btn-action { width: 100%; padding: 14px; font-size: 0.92rem; }
     }
   </style>
 </head>
@@ -104,17 +110,47 @@
       `;
     }
 
-    function renderBasic(result) {
+    function getLuckyInfo(result) {
       const lucky = result.행운정보 || {};
+      return {
+        color: lucky.색상 || lucky.행운의색 || result.행운의색 || result.행운색상 || "",
+        number: lucky.숫자 || lucky.행운의숫자 || result.행운의숫자 || result.행운숫자 || "",
+        direction: lucky.방향 || lucky.행운의방향 || result.행운의방향 || result.행운방향 || ""
+      };
+    }
+
+    function formatCardValue(value) {
+      if (value == null) return "";
+      if (typeof value === "string" || typeof value === "number") return String(value);
+      if (Array.isArray(value)) {
+        return value
+          .map((item) => formatCardValue(item))
+          .filter(Boolean)
+          .join("<br>");
+      }
+      if (typeof value === "object") {
+        return Object.entries(value)
+          .map(([key, item]) => {
+            const formatted = formatCardValue(item);
+            return formatted ? `<div><b>${key}</b> ${formatted}</div>` : "";
+          })
+          .filter(Boolean)
+          .join("");
+      }
+      return String(value);
+    }
+
+    function renderBasic(result) {
+      const lucky = getLuckyInfo(result);
       return [
-        makeCard("총평", result.총평 || "", "fa-feather-pointed"),
-        makeCard("오늘의 운세", result.오늘의운세 || "", "fa-sun"),
-        makeCard("이번 달 운세", result.이번달운세 || "", "fa-calendar-days"),
+        makeCard("총평", formatCardValue(result.총평), "fa-feather-pointed"),
+        makeCard("오늘의 운세", formatCardValue(result.오늘의운세), "fa-sun"),
+        makeCard("이번 달 운세", formatCardValue(result.이번달운세), "fa-calendar-days"),
         makeCard("행운 정보", `
           <div class="kv-grid">
-            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.색상 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.숫자 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.방향 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.color}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.number}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.direction}</div></div>
           </div>
         `, "fa-clover")
       ].join("");
@@ -123,9 +159,9 @@
     function renderPremium(result) {
       const five = result.오행분석 || {};
       const months = Array.isArray(result.월별운세) ? result.월별운세 : [];
-      const lucky = result.행운정보 || {};
+      const lucky = getLuckyInfo(result);
       return [
-        makeCard("총평", result.총평 || "", "fa-feather-pointed"),
+        makeCard("총평", formatCardValue(result.총평), "fa-feather-pointed"),
         makeCard("오행 분석", `
           <div class="kv-grid">
             <div class="kv-item"><div class="kv-key">목</div><div class="kv-val">${five.목 || ""}</div></div>
@@ -135,7 +171,7 @@
             <div class="kv-item"><div class="kv-key">수</div><div class="kv-val">${five.수 || ""}</div></div>
           </div>
         `, "fa-yin-yang"),
-        makeCard("2026년 운세", result["2026년운세"] || "", "fa-calendar-check"),
+        makeCard("2026년 운세", formatCardValue(result["2026년운세"]), "fa-calendar-check"),
         makeCard("월별 운세", `
           <div class="month-grid">
             ${months.map((m) => `<div class="month-item"><b>${m.월 || ""}</b><div>${m.운세 || ""}</div></div>`).join("")}
@@ -143,19 +179,19 @@
         `, "fa-chart-line"),
         makeCard("분야별 운세", `
           <div class="kv-grid">
-            <div class="kv-item"><div class="kv-key">재물운</div><div class="kv-val">${result.재물운 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">애정운</div><div class="kv-val">${result.애정운 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">건강운</div><div class="kv-val">${result.건강운 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">재물운</div><div class="kv-val">${formatCardValue(result.재물운)}</div></div>
+            <div class="kv-item"><div class="kv-key">애정운</div><div class="kv-val">${formatCardValue(result.애정운)}</div></div>
+            <div class="kv-item"><div class="kv-key">건강운</div><div class="kv-val">${formatCardValue(result.건강운)}</div></div>
           </div>
         `, "fa-briefcase"),
         makeCard("행운 정보", `
           <div class="kv-grid">
-            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.색상 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.숫자 || ""}</div></div>
-            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.방향 || ""}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 색상</div><div class="kv-val">${lucky.color}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 숫자</div><div class="kv-val">${lucky.number}</div></div>
+            <div class="kv-item"><div class="kv-key">행운 방향</div><div class="kv-val">${lucky.direction}</div></div>
           </div>
         `, "fa-clover"),
-        makeCard("총 조언", result.총조언 || "", "fa-quote-left")
+        makeCard("총 조언", formatCardValue(result.총조언), "fa-quote-left")
       ].join("");
     }
 

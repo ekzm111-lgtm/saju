@@ -62,7 +62,9 @@ let servicesData = [];
 let currentServiceId = "";
 
 const modal = document.getElementById("info-modal");
+const vipSection = document.getElementById("vip-section");
 const noticePanel = document.getElementById("notice-panel");
+const noticePrimaryButton = document.querySelector("#notice-panel .notice-panel__button");
 const sajuForm = document.getElementById("saju-form");
 const contactForm = document.getElementById("contactForm");
 const nativeAlert = typeof window !== "undefined" && typeof window.alert === "function"
@@ -468,7 +470,8 @@ function enhanceVipFormUI() {
     </div>
   `;
 
-  vipForm.insertBefore(extraSection, submitButton);
+  const actionsWrap = vipForm.querySelector(".vip-form-actions");
+  vipForm.insertBefore(extraSection, actionsWrap || submitButton);
 }
 
 async function handleVipSubmitCapture(e) {
@@ -605,11 +608,31 @@ function openModal(serviceId) {
 function closeModal() {
   if (!modal) return;
   modal.style.display = "none";
-  document.body.style.overflow = "auto";
+  updateBodyScrollLock();
+}
+
+function openVipModal() {
+  if (!vipSection) return;
+  vipSection.scrollIntoView({ behavior: "smooth", block: "center" });
+  document.body.classList.add("vip-modal-open");
+  updateBodyScrollLock();
+}
+
+function closeVipModal() {
+  document.body.classList.remove("vip-modal-open");
+  updateBodyScrollLock();
+}
+
+function updateBodyScrollLock() {
+  const isServiceModalOpen = modal && modal.style.display === "flex";
+  const isVipModalOpen = document.body.classList.contains("vip-modal-open");
+  document.body.style.overflow = isServiceModalOpen || isVipModalOpen ? "hidden" : "auto";
 }
 
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.openVipModal = openVipModal;
+window.closeVipModal = closeVipModal;
 window.closeNoticePanel = closeNoticePanel;
 window.alert = handleAppAlert;
 
@@ -636,6 +659,9 @@ function showNoticePanel({
   setText("notice-timeline", timeline);
   setText("notice-channel", channel);
   setText("notice-channel-detail", channelDetail);
+  if (noticePrimaryButton) {
+    noticePrimaryButton.textContent = noticePanel.dataset.redirectHome === "1" ? "메인으로" : "확인";
+  }
 
   noticePanel.classList.add("is-open");
   noticePanel.setAttribute("aria-hidden", "false");
@@ -644,9 +670,17 @@ function showNoticePanel({
 
 function closeNoticePanel() {
   if (!noticePanel) return;
+  const shouldGoHome = noticePanel.dataset.redirectHome === "1";
   noticePanel.classList.remove("is-open");
   noticePanel.setAttribute("aria-hidden", "true");
-  document.body.style.overflow = modal && modal.style.display === "flex" ? "hidden" : "auto";
+  noticePanel.dataset.redirectHome = "0";
+  if (noticePrimaryButton) {
+    noticePrimaryButton.textContent = "확인";
+  }
+  updateBodyScrollLock();
+  if (shouldGoHome) {
+    window.location.href = "index.html";
+  }
 }
 
 function handleAppAlert(message) {
@@ -760,7 +794,16 @@ function getApiBaseURL() {
   return baseFromStorage || (isHttp ? window.location.origin : "http://localhost:3001");
 }
 
+const ANALYSIS_API_DISABLED = true;
+
+function showAnalysisApiDisabledNotice() {
+  alert("현재 이 페이지에서는 분석 API가 비활성화되어 있습니다.");
+}
+
 async function ensureAIAvailableBeforePayment() {
+  if (ANALYSIS_API_DISABLED) {
+    return false;
+  }
   const endpoint = `${getApiBaseURL().replace(/\/$/, "")}/api/gemini`;
   try {
     const response = await fetch(endpoint, {
@@ -904,6 +947,7 @@ async function requestVipPayment(userInfo) {
       status: "pending_review",
       paymentTestMode: true
     });
+    if (noticePanel) noticePanel.dataset.redirectHome = "1";
     alert("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.\n관리자가 확인 후 1~2일 내에 이메일로 결과를 보내드립니다.");
     return;
   }
@@ -926,6 +970,7 @@ async function requestVipPayment(userInfo) {
       memo: "VIP 1:1 정밀 사주 분석 요청 데이터",
       status: "pending_review"
     });
+    if (noticePanel) noticePanel.dataset.redirectHome = "1";
     alert("VIP 정밀 사주 분석 신청이 정상적으로 접수되었습니다.\n관리자가 확인 후 1~2일 내에 이메일로 결과를 보내드립니다.");
   } catch (error) {
     console.error("VIP payment request error:", error);
@@ -934,6 +979,10 @@ async function requestVipPayment(userInfo) {
 }
 
 async function startAIAnalysis(userInfo) {
+  if (ANALYSIS_API_DISABLED) {
+    showAnalysisApiDisabledNotice();
+    return;
+  }
   closeModal();
   const loading = document.getElementById("legacy-loading-overlay");
   if (loading) loading.style.display = "flex";
@@ -973,6 +1022,63 @@ async function startAIAnalysis(userInfo) {
   await finalizeAnalysisResult(userInfo, mockResult);
 }
 
+function createFortuneSearchQuery(userInfo) {
+  return `${userInfo.birth} ${userInfo.time} ${userInfo.gender} 사주 명리학 분석 2026 운세`;
+}
+
+function buildSearchAidedPrompt(userInfo, prompt) {
+  const searchQuery = createFortuneSearchQuery(userInfo);
+  return `
+[검색 보조 분석 가이드]
+당신은 현재 인터넷 검색을 통해 "${searchQuery}"에 대한 최신 명리학 데이터를 참고하고 있습니다.
+검색으로 얻은 맥락과 기존 지식을 결합해 아래 고객 요청에 대해 가장 구체적이고 정확한 JSON 리포트를 작성하세요.
+추상적으로 답하지 말고 전문가처럼 상세하게 작성하세요.
+
+${prompt}
+  `.trim();
+}
+
+async function startAIAnalysis(userInfo) {
+  closeModal();
+  const loading = document.getElementById("legacy-loading-overlay");
+  if (loading) loading.style.display = "flex";
+
+  try {
+    const prompt = buildServicePrompt(userInfo);
+    const rawResult = await callGeminiAPI(buildSearchAidedPrompt(userInfo, prompt));
+    console.log("Search-aided analysis result:", rawResult);
+
+    const resultJSON = normalizeServiceResult(userInfo, rawResult);
+    if (!isDetailedEnough(userInfo.serviceId, resultJSON)) {
+      throw new Error("검색 보조 분석 결과가 충분히 상세하지 않습니다.");
+    }
+
+    await finalizeAnalysisResult(userInfo, resultJSON);
+  } catch (error) {
+    console.error("Search-aided analysis failed:", error);
+    alert(`크롤링 기반 분석에 실패했습니다.\n사유: ${error.message || String(error)}`);
+  } finally {
+    if (loading) loading.style.display = "none";
+  }
+}
+
+function formatAnalysisErrorMessage(error) {
+  const message = String(error?.message || error || "");
+  if (message.includes("models/") || message.includes("not found for API version")) {
+    return "Gemini 모델 설정이 올바르지 않습니다. 서버의 GEMINI_MODEL 값을 점검해야 합니다.";
+  }
+  if (message.includes("billing") || message.includes("quota") || message.includes("exceeded your current quota")) {
+    return "AI API 사용 한도 또는 결제 설정 문제입니다.";
+  }
+  if (message.includes("failed_generation")) {
+    return "Groq 응답 생성에 실패했습니다. 다른 모델 또는 프롬프트 조정이 필요합니다.";
+  }
+  if (message.includes("OpenAI API key")) {
+    return "OpenAI API 키 설정이 올바르지 않습니다.";
+  }
+  return message || "알 수 없는 오류";
+}
+
 function isGeminiQuotaError(error) {
   const msg = String(error?.message || "").toLowerCase();
   return (
@@ -983,6 +1089,7 @@ function isGeminiQuotaError(error) {
   );
 }
 
+/*
 function isDetailedEnough(serviceId, resultJSON) {
   const textLength = (value) => String(value || "").replace(/\s+/g, "").length;
 
@@ -1022,6 +1129,72 @@ function isDetailedEnough(serviceId, resultJSON) {
     textLength(resultJSON?.이번달운세) > 120 &&
     textLength(resultJSON?.오늘의조언) > 100
   );
+}
+
+function isDetailedEnough(serviceId, resultJSON) {
+  const textLength = (value) => String(value || "").replace(/\s+/g, "").length;
+
+  if (serviceId === "premium") {
+    return (
+      textLength(resultJSON?.珥앺룊) > 20 &&
+      textLength(resultJSON?.["2026?꾩슫??]) > 20 &&
+      textLength(resultJSON?.珥앹“??) > 30
+    );
+  }
+
+  if (serviceId === "couple") {
+    return (
+      Number(resultJSON?.沅곹빀?먯닔 || 0) > 0 &&
+      textLength(resultJSON?.沅곹빀珥앺룊) > 20 &&
+      textLength(resultJSON?.珥앹“??) > 20
+    );
+  }
+
+  if (serviceId === "name") {
+    return (
+      textLength(resultJSON?.?대쫫遺꾩꽍) > 20 &&
+      textLength(resultJSON?.?대쫫?섍린??) > 20 &&
+      Array.isArray(resultJSON?.異붿쿇?대쫫3媛?) &&
+      resultJSON.異붿쿇?대쫫3媛?.length === 3
+    );
+  }
+
+  return (
+    textLength(resultJSON?.珥앺룊) > 20 &&
+    textLength(resultJSON?.?ㅻ뒛?섏슫??) > 20
+  );
+}
+*/
+
+function isDetailedEnough(serviceId, resultJSON) {
+  const textLength = (value) => String(value || "").replace(/\s+/g, "").length;
+  const collectTextLength = (value) => {
+    if (Array.isArray(value)) {
+      return value.reduce((sum, item) => sum + collectTextLength(item), 0);
+    }
+    if (value && typeof value === "object") {
+      return Object.values(value).reduce((sum, item) => sum + collectTextLength(item), 0);
+    }
+    return textLength(value);
+  };
+
+  const totalLength = collectTextLength(resultJSON);
+
+  if (serviceId === "name") {
+    const arrays = Object.values(resultJSON || {}).filter(Array.isArray);
+    return totalLength > 40 && arrays.some((items) => items.length >= 3);
+  }
+
+  if (serviceId === "couple") {
+    const numberValues = Object.values(resultJSON || {}).filter((value) => typeof value === "number");
+    return totalLength > 40 && numberValues.some((value) => value > 0);
+  }
+
+  if (serviceId === "premium") {
+    return totalLength > 80;
+  }
+
+  return totalLength > 30;
 }
 
 function getServiceSchema(serviceId) {
@@ -1165,6 +1338,19 @@ ${getServiceSchema("premium")}
 - JSON만 반환, 다른 말 금지
 `.trim();
 
+  const premiumRichPrompt = `${premiumPrompt}
+
+[프리미엄 추가 작성 지침]
+- 이 리포트는 유료 프리미엄 리포트이므로 일반 사주보다 훨씬 길고 풍부하게 작성한다.
+- 총평은 최소 12문장 이상으로 작성하고, 타고난 성향·현재 흐름·강점·약점·관계 스타일을 모두 포함한다.
+- 2026년운세는 최소 12문장 이상으로 작성하고, 기회와 주의점, 흐름 변화를 함께 설명한다.
+- 상반기운세와 하반기운세는 각각 최소 8문장 이상으로 작성한다.
+- 월별운세는 1월부터 12월까지 각 달마다 최소 5문장 이상 작성하고, 기회·주의점·행동 조언을 모두 담는다.
+- 재물운, 애정운, 건강운, 직업운은 각각 최소 8문장 이상 작성한다.
+- 행운정보는 색상, 숫자, 방향 각각에 대해 이유까지 포함해 최소 3문장 이상 작성한다.
+- 총조언은 최소 18문장 이상의 장문으로 작성하고, 위로·실행 조언·희망 메시지를 모두 포함한다.
+- 각 항목은 서로 내용이 겹치지 않게 다른 관점으로 서술한다.`.trim();
+
   const couplePrompt = `
 너는 30년 경력의 한국 사주명리학 전문가야.
 두 사람의 사주를 바탕으로 매우 상세한 궁합 분석을 해줘.
@@ -1223,7 +1409,7 @@ ${getServiceSchema("name")}
 
   const prompts = {
     basic: basicPrompt,
-    premium: premiumPrompt,
+    premium: premiumRichPrompt,
     couple: couplePrompt,
     name: namePrompt
   };
@@ -1233,6 +1419,9 @@ ${getServiceSchema("name")}
 
 // 기존 코드가 어떻게 되어있든 이걸로 교체
 async function callGeminiAPI(prompt) {
+  if (ANALYSIS_API_DISABLED) {
+    throw new Error("분석 API가 비활성화되어 있습니다.");
+  }
   const endpoint = `${getApiBaseURL().replace(/\/$/, "")}/api/gemini`;
 
   let response;
