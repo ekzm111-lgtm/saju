@@ -793,7 +793,7 @@ function getApiBaseURL() {
   return baseFromStorage || (isHttp ? window.location.origin : "http://localhost:3001");
 }
 
-const ANALYSIS_API_DISABLED = true;
+const ANALYSIS_API_DISABLED = false;
 
 function showAnalysisApiDisabledNotice() {
   alert("현재 이 페이지에서는 분석 API가 비활성화되어 있습니다.");
