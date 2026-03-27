@@ -1531,16 +1531,18 @@ body.vip-modal-open #vip-section .vip-modal-close {
 }
 
 @media (max-width: 640px) {
-    .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stats-grid { grid-template-columns: 1fr; }
     .stat-card {
         padding: 24px 10px;
-        border-right: 1px solid var(--border-light);
-        border-bottom: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border-light);
     }
-    .stat-card:last-child { border-right: none; }
+    .stat-card:last-child { border-bottom: none; }
     .stat-num {
-        font-size: 1.9rem;
+        font-size: 1.6rem;
         margin-bottom: 8px;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
     }
     .stat-card p {
         font-size: 0.72rem;
